@@ -1,0 +1,71 @@
+provider "aws" {
+  region = "us-east-1"  # Update this with your desired AWS region
+}
+
+resource "aws_sagemaker_notebook_instance_lifecycle_configuration" "example_config" {
+  name = "example-lifecycle-config"
+
+  # The content of the lifecycle configuration script
+  # Here, we are creating a conda environment named "my_kernel_env"
+  # You can modify this script to set up the required environment for your use case.
+  on_create = <<-EOT
+    #!/bin/bash
+    set -e
+    
+    # Install conda
+    curl -o ~/miniconda.sh -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    chmod +x ~/miniconda.sh
+    ~/miniconda.sh -b -p ~/miniconda
+    echo 'export PATH=~/miniconda/bin:$PATH' >> ~/.bashrc
+    
+    # Activate conda environment
+    ~/miniconda/bin/conda create -n my_kernel_env python=3.7 -y
+    source ~/miniconda/bin/activate my_kernel_env
+    
+    # Install necessary packages for your kernel server environment
+    # e.g., pip install numpy pandas scikit-learn
+    
+    # Make conda environment available as a kernel in Jupyter
+    ipython kernel install --user --name=my_kernel_env
+    
+    # Other customizations you might want to add
+    # e.g., additional libraries, configurations, etc.
+  EOT
+
+  on_start = <<-EOT
+    #!/bin/bash
+    set -e
+
+    # Activate conda environment on start
+    source ~/miniconda/bin/activate my_kernel_env
+  EOT
+}
+
+# You can add a SageMaker Notebook Instance that uses the above lifecycle configuration
+resource "aws_sagemaker_notebook_instance" "example_instance" {
+  name            = "example-notebook-instance"
+  instance_type   = "ml.t2.medium"
+  role_arn        = aws_iam_role.example_notebook_role.arn
+  lifecycle_config_name = aws_sagemaker_notebook_instance_lifecycle_configuration.example_config.name
+}
+
+# Define an IAM role for the SageMaker Notebook Instance
+resource "aws_iam_role" "example_notebook_role" {
+  name = "example-notebook-role"
+
+  # Add necessary permissions for the role, e.g., S3 access, etc.
+  # Be sure to provide the appropriate permissions based on your use case.
+  # Example policies:
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "sagemaker.amazonaws.com"
+        }
+      }
+    ]
+  })
+}

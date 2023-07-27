@@ -1,0 +1,35 @@
+provider "aws" {
+  region = "us-east-1"  # Replace with your desired AWS region
+}
+
+# SageMaker Lifecycle Configuration for Kernel Gateway
+resource "aws_sagemaker_notebook_instance_lifecycle_configuration" "kernel_gateway_config" {
+  name = "kernel-gateway-config"  # Replace with a unique name for the lifecycle configuration
+
+  # Script content to be run during the start of the notebook instance
+  on_create {
+    content = <<EOF
+#!/bin/bash
+set -e
+
+# Install and enable the kernel gateway
+sudo -u ec2-user -i <<'EOF2'
+KERNEL_NAME="my_kernel"
+ENV_NAME="my_env"
+source /home/ec2-user/anaconda3/bin/activate $ENV_NAME
+python -m ipykernel install --user --name $KERNEL_NAME --display-name "My Kernel"
+EOF2
+EOF
+  }
+
+  # Script content to be run during the stop of the notebook instance
+  on_start {
+    content = <<EOF
+#!/bin/bash
+set -e
+
+# Add any additional steps you want to perform when the instance starts
+echo "Notebook instance started!"
+EOF
+  }
+}

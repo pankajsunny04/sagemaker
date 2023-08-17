@@ -121,3 +121,9 @@ resource "aws_sagemaker_domain" "example" {
     }
   }
 }
+
+
+resource "aws_sagemaker_user_profile_lifecycle_config" "example" {
+  user_profile_name      = aws_sagemaker_user_profile.example.name
+  lifecycle_config_name = aws_sagemaker_notebook_instance_lifecycle_configuration.example.name
+}

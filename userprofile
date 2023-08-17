@@ -1,0 +1,34 @@
+provider "aws" {
+  region = "us-west-2"  # Change to your desired region
+}
+
+resource "aws_sagemaker_domain" "example_domain" {
+  domain_name = "your-sagemaker-domain-name"
+  auth_mode   = "IAM"
+}
+
+resource "aws_sagemaker_user_profile" "example_user_profile" {
+  domain_id  = aws_sagemaker_domain.example_domain.id
+  user_profile_name = "your-user-profile-name"
+}
+
+resource "aws_sagemaker_user_profile_personalize_s3_data_source" "example_personalize_data_source" {
+  user_profile_name = aws_sagemaker_user_profile.example_user_profile.name
+  s3_uri            = "s3://your-bucket/path/to/git/repo.zip"  # Replace with your repository S3 URI
+}
+
+resource "aws_sagemaker_domain_policy" "example_domain_policy" {
+  domain_id = aws_sagemaker_domain.example_domain.id
+
+  policy_document = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = ["sagemaker:CreateUserProfile", "sagemaker:CreatePresignedDomainUrl", "sagemaker:UpdateUserProfile"],
+        Effect = "Allow",
+        Principal = "*",
+        Resource = aws_sagemaker_user_profile.example_user_profile.arn,
+      },
+    ]
+  })
+}

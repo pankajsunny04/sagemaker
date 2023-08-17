@@ -32,3 +32,49 @@ resource "aws_sagemaker_domain_policy" "example_domain_policy" {
     ]
   })
 }
+
+
+
+provider "aws" {
+  region = "us-west-2"  # Set your desired AWS region
+}
+
+resource "aws_sagemaker_domain" "example" {
+  name = "example-domain"  # Set your SageMaker domain name
+}
+
+resource "aws_sagemaker_user_profile" "example_profile" {
+  domain_id        = aws_sagemaker_domain.example.id
+  user_profile_name = "example-profile"
+  single_sign_on_user_identifier = "user@example.com"  # Replace with your desired user identifier
+
+  user_settings {
+    execution_role = "arn:aws:iam::123456789012:role/service-role/AmazonSageMaker-ExecutionRole"  # Replace with your execution role ARN
+  }
+}
+
+resource "aws_sagemaker_app_image_config" "example_app_image_config" {
+  name = "example-app-image-config"
+
+  kernel_gateway_image_config {
+    starting_variant {
+      instance_type = "ml.t2.medium"  # Set your desired instance type
+    }
+  }
+}
+
+resource "aws_sagemaker_app" "example_app" {
+  name          = "example-app"
+  domain_id     = aws_sagemaker_domain.example.id
+  app_image_config_name = aws_sagemaker_app_image_config.example_app_image_config.name
+}
+
+# Assuming you've set up your Git repository elsewhere, you can use this resource to attach it
+resource "aws_sagemaker_domain_association" "example_git_repo" {
+  domain_id       = aws_sagemaker_domain.example.id
+  app_id          = aws_sagemaker_app.example_app.id
+  resource_arn    = "arn:aws:codecommit:us-west-2:123456789012:my-repo"  # Replace with your Git repository ARN
+  domain_name     = aws_sagemaker_domain.example.domain_name
+  user_profile_name = aws_sagemaker_user_profile.example_profile.user_profile_name
+}
+

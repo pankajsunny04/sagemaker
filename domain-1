@@ -1,0 +1,9 @@
+resource "aws_sagemaker_domain" "example_domain" {
+  domain_name = "example-domain"
+  sharing_settings {
+    s3_kms_key_id     = "arn:aws:kms:us-east-1:123456789012:key/abcd1234-a123-456a-a12b-a123b4cd5678"
+    s3_output_path    = "s3://example-bucket/output/"
+    s3_upload_policy  = "Policy text for S3 upload"
+    s3_download_policy = "Policy text for S3 download"
+  }
+}

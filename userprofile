@@ -78,3 +78,23 @@ resource "aws_sagemaker_domain_association" "example_git_repo" {
   user_profile_name = aws_sagemaker_user_profile.example_profile.user_profile_name
 }
 
+
+
+provider "aws" {
+  region = "us-east-1"  # Update with your desired AWS region
+}
+
+resource "aws_sagemaker_domain" "example_domain" {
+  domain_name = "your-sagemaker-domain-name"
+  auth_mode = "IAM"
+}
+
+resource "aws_codecommit_repository" "example_repo" {
+  repository_name = "your-repo-name"
+}
+
+resource "aws_sagemaker_domain_association" "example_association" {
+  domain_id      = aws_sagemaker_domain.example_domain.id
+  repository_id = aws_codecommit_repository.example_repo.id
+}
+

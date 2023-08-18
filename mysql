@@ -1,17 +1,43 @@
-resource "aws_db_instance" "my_db_instance" {
-  allocated_storage    = 20
-  storage_type        = "gp2"
-  engine              = "mysql"
-  engine_version      = "8.0"
-  instance_class      = "db.t2.micro"
-  name                = "mydbinstance"
-  username            = "admin"
-  password            = "mysecretpassword"
-  parameter_group_name = aws_db_parameter_group.custom_pg.name
-  subnet_group_name   = aws_db_subnet_group.my_subnet_group.name
-  multi_az            = true
-
-  tags = {
-    Name = "MyDBInstance"
-  }
+variable "iam_username" {
+  description = "The name of the IAM user"
 }
+
+variable "secret_name" {
+  description = "The name of the secret in Secrets Manager"
+}
+
+
+provider "aws" {
+  region = "us-east-1"  # Set your desired region
+}
+
+resource "aws_iam_user" "iam_user" {
+  name = var.iam_username
+}
+
+resource "aws_iam_access_key" "iam_access_key" {
+  user = aws_iam_user.iam_user.name
+}
+
+resource "aws_secretsmanager_secret" "iam_secret" {
+  name = var.secret_name
+}
+
+resource "aws_secretsmanager_secret_version" "iam_secret_version" {
+  secret_id     = aws_secretsmanager_secret.iam_secret.id
+  secret_string = jsonencode({
+    access_key = aws_iam_access_key.iam_access_key.id,
+    secret_key = aws_iam_access_key.iam_access_key.secret
+  })
+}
+
+
+output "secret_name" {
+  value = aws_secretsmanager_secret.iam_secret.name
+}
+
+output "secret_arn" {
+  value = aws_secretsmanager_secret.iam_secret.arn
+}
+
+

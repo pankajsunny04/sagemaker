@@ -1,0 +1,53 @@
+provider "aws" {
+  region = "us-east-1" # Update with your desired region
+}
+
+resource "aws_iam_user" "example_user" {
+  name = "example-user"
+}
+
+resource "aws_iam_access_key" "example_access_key" {
+  user = aws_iam_user.example_user.name
+}
+
+resource "aws_secretsmanager_secret" "example_secret" {
+  name = "example-secret"
+}
+
+resource "aws_secretsmanager_secret_version" "example_secret_version" {
+  secret_id     = aws_secretsmanager_secret.example_secret.id
+  secret_string = jsonencode({
+    access_key = aws_iam_access_key.example_access_key.id,
+    secret_key = aws_iam_access_key.example_access_key.secret
+  })
+}
+
+
+variable "aws_region" {
+  description = "The AWS region"
+  type        = string
+  default     = "us-east-1" # Update with your desired region
+}
+
+
+output "iam_user_name" {
+  description = "The IAM user name"
+  value       = aws_iam_user.example_user.name
+}
+
+output "iam_access_key" {
+  description = "The IAM user's access key"
+  value       = aws_iam_access_key.example_access_key.id
+}
+
+output "iam_secret_key" {
+  description = "The IAM user's secret key"
+  value       = aws_iam_access_key.example_access_key.secret
+}
+
+output "secret_manager_secret_id" {
+  description = "The ID of the AWS Secret Manager secret"
+  value       = aws_secretsmanager_secret.example_secret.id
+}
+
+

@@ -1,0 +1,99 @@
+provider "aws" {
+  region = "us-east-1"  # Set your desired AWS region
+}
+
+resource "aws_budgets_budget" "sagemaker_budget" {
+  account_id = "<your_account_id>"
+  budget     = "SagemakerBudget"
+  limit_amount = 100.0  # Set your monthly budget amount
+  limit_unit   = "USD"
+  time_period_start = "2023-08-01_00:00"
+  time_period_end   = "2023-08-31_23:59"
+
+  cost_filters = {
+    TagKeyValue = "sagemaker"  # Set your desired cost allocation tag
+  }
+
+  notification {
+    comparison_operator = "GREATER_THAN"
+    notification_type  = "ACTUAL"
+    threshold          = 80
+    threshold_type     = "PERCENTAGE"
+
+    subscribers = [
+      {
+        subscription_type = "EMAIL"
+        address           = "your.email@example.com"
+      }
+    ]
+  }
+
+  notification {
+    comparison_operator = "EQUAL_TO"
+    notification_type  = "ACTUAL"
+    threshold          = 100
+    threshold_type     = "PERCENTAGE"
+
+    subscribers = [
+      {
+        subscription_type = "EMAIL"
+        address           = "your.email@example.com"
+      }
+    ]
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "sagemaker_budget_alarm_80" {
+  alarm_name          = "SagemakerBudgetAlarm80"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods = "1"
+  metric_name        = "BudgetActualCost"
+  namespace          = "AWS/Budgets"
+  period             = "86400"  # 24 hours in seconds
+  statistic          = "Maximum"
+  threshold          = "80"
+  alarm_description = "Sagemaker budget exceeded 80%"
+  alarm_actions     = [aws_sns_topic.budget_alert_topic.arn]
+  dimensions = {
+    BudgetName  = aws_budgets_budget.sagemaker_budget.budget_name
+    CostType    = "Actual"
+    CostFilter  = "TagKeyValue"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "sagemaker_budget_alarm_100" {
+  alarm_name          = "SagemakerBudgetAlarm100"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods = "1"
+  metric_name        = "BudgetActualCost"
+  namespace          = "AWS/Budgets"
+  period             = "86400"  # 24 hours in seconds
+  statistic          = "Maximum"
+  threshold          = "100"
+  alarm_description = "Sagemaker budget exceeded 100%"
+  alarm_actions     = [aws_sns_topic.budget_alert_topic.arn]
+  dimensions = {
+    BudgetName  = aws_budgets_budget.sagemaker_budget.budget_name
+    CostType    = "Actual"
+    CostFilter  = "TagKeyValue"
+  }
+}
+
+resource "aws_sns_topic" "budget_alert_topic" {
+  name = "SagemakerBudgetAlerts"
+}
+
+resource "aws_budgets_notification" "sagemaker_notification" {
+  account_id = "<your_account_id>"
+  budget_name = aws_budgets_budget.sagemaker_budget.budget_name
+  notification_type = "ACTUAL"
+  threshold = 100
+  threshold_type = "PERCENTAGE"
+
+  subscribers = [
+    {
+      subscription_type = "SNS"
+      address = aws_sns_topic.budget_alert_topic.arn
+    }
+  ]
+}

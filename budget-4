@@ -1,0 +1,54 @@
+provider "aws" {
+  region = "us-west-1"  # Change this to your desired region
+}
+
+resource "aws_budgets_budget" "sagemaker_budget" {
+  budget_type = "COST"
+  limit_amount = 100.0  # Specify your budget amount
+
+  # Define your time period (monthly)
+  time_period {
+    start = "2023-08-01"
+    end   = "2023-08-31"
+  }
+
+  # Configure your budget thresholds and alerts
+  cost_filters = {
+    "Service" = "Amazon SageMaker"
+  }
+
+  # Define budget thresholds and alert actions
+  budget_thresholds {
+    threshold_type = "PERCENTAGE"
+    threshold = 80.0
+
+    notification {
+      notification_type = "ACTUAL"
+      comparison_operator = "GREATER_THAN"
+      threshold = 80.0
+      threshold_type = "PERCENTAGE"
+
+      # Specify SNS topic ARN for 80% alert
+      subscriber_email_address = "your-email@example.com"
+    }
+  }
+
+  budget_thresholds {
+    threshold_type = "PERCENTAGE"
+    threshold = 100.0
+
+    notification {
+      notification_type = "ACTUAL"
+      comparison_operator = "GREATER_THAN"
+      threshold = 100.0
+      threshold_type = "PERCENTAGE"
+
+      # Specify SNS topic ARN for 100% alert
+      subscriber_email_address = "your-email@example.com"
+    }
+  }
+}
+
+
+
+

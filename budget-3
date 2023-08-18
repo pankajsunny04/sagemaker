@@ -1,0 +1,63 @@
+variable "budget_80_percent_amount" {
+  description = "Budget amount at 80% threshold"
+  type        = number
+}
+
+variable "budget_100_percent_amount" {
+  description = "Budget amount at 100% threshold"
+  type        = number
+}
+
+variable "email_recipients" {
+  description = "List of email recipients for budget notifications"
+  type        = list(string)
+}
+
+
+
+
+resource "aws_budgets_budget" "budget_80_percent" {
+  budget_type = "COST"
+
+  limit_amount       = var.budget_80_percent_amount
+  limit_unit         = "USD"
+  time_unit          = "MONTHLY"
+  name               = "SageMakerBudget80Percent"
+  notification_type = "ACTUAL"
+  
+  subscriber_email_addresses = var.email_recipients
+
+  cost_filters = {
+    Tag:Environment = "Production"
+  }
+}
+
+resource "aws_budgets_budget" "budget_100_percent" {
+  budget_type = "COST"
+
+  limit_amount       = var.budget_100_percent_amount
+  limit_unit         = "USD"
+  time_unit          = "MONTHLY"
+  name               = "SageMakerBudget100Percent"
+  notification_type = "ACTUAL"
+  
+  subscriber_email_addresses = var.email_recipients
+
+  cost_filters = {
+    Tag:Environment = "Production"
+  }
+}
+
+
+
+output "budget_80_percent_id" {
+  description = "ID of the 80% threshold budget"
+  value       = aws_budgets_budget.budget_80_percent.id
+}
+
+output "budget_100_percent_id" {
+  description = "ID of the 100% threshold budget"
+  value       = aws_budgets_budget.budget_100_percent.id
+}
+
+

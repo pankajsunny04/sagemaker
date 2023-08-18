@@ -1,0 +1,31 @@
+resource "aws_budgets_budget" "sagemaker_budget" {
+  budget_name      = "SageMakerMonthlyBudget"
+  budget_type      = "COST"
+  time_unit        = "MONTHLY"
+  time_period_start = "2023-08-01"  # Replace with your desired start date
+  time_period_end   = "2023-08-31"  # Replace with your desired end date
+
+  limit_amount     = 100.0  # Replace with your desired budget limit
+  limit_unit       = "USD"
+
+  cost_types {
+    include_support   = false
+    include_discounts = false
+    include_taxes     = false
+  }
+
+  notification {
+    comparison_operator = "GREATER_THAN"
+    threshold          = 100.0  # Replace with your desired threshold value
+    threshold_type     = "PERCENTAGE"
+    notification_type  = "ACTUAL"
+  }
+
+  subscribers {
+    subscription_type = "SNS"
+    address           = "arn:aws:sns:us-east-1:123456789012:my-sns-topic"  # Replace with your SNS topic ARN
+  }
+}
+
+
+

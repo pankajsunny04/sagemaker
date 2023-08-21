@@ -1,0 +1,5 @@
+resource "aws_efs_access_point_policy" "efs_access_point_policy" {
+  count            = 2
+  access_point_id = aws_efs_access_point.efs_access_point.id
+  policy           = file(var.efs_policy_path)
+}

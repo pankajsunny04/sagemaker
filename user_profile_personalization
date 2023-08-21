@@ -1,0 +1,31 @@
+variable "aws_region" {
+  description = "The AWS region where the resources will be created."
+}
+
+variable "user_profile_name" {
+  description = "The name of the SageMaker user profile."
+}
+
+resource "aws_sagemaker_domain" "example_domain" {
+  domain_name = "example-domain"
+  auth_mode   = "IAM"
+}
+
+resource "aws_sagemaker_user_profile" "example_profile" {
+  user_profile_name = var.user_profile_name
+  domain_id        = aws_sagemaker_domain.example_domain.id
+  single_sign_on_user_identifier = "sso-user@example.com"
+}
+
+resource "aws_sagemaker_user_profile_personalization" "example_personalization" {
+  user_profile_name = aws_sagemaker_user_profile.example_profile.name
+
+  favorites {
+    domain_id = aws_sagemaker_domain.example_domain.id
+    user_profile_favorites {
+      title     = "Favorite Notebook"
+      type      = "Notebook"
+      notebook  = "arn:aws:sagemaker:us-east-1:123456789012:notebook-instance/notebook-instance-name"
+    }
+  }
+}

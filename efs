@@ -3,3 +3,21 @@ resource "aws_efs_access_point_policy" "efs_access_point_policy" {
   access_point_id = aws_efs_access_point.efs_access_point.id
   policy           = file(var.efs_policy_path)
 }
+
+
+resource "aws_efs_file_system_policy" "efs_policy" {
+  file_system_id = var.efs_file_system_id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid    = var.efs_policy_statement_id,
+        Effect = "Allow",
+        Action = var.efs_policy_actions,
+        Principal = {
+          AWS = var.efs_policy_principal
+        }
+      }
+    ]
+  })
+}

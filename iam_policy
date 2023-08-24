@@ -1,0 +1,79 @@
+provider "aws" {
+  region = "us-west-2"  # Update with your desired region
+}
+
+# Check if the IAM role exists
+data "aws_iam_role" "existing_role" {
+  name = "existing-role-name"  # Replace with the actual IAM role name
+}
+
+# Create an IAM policy only if the role exists
+resource "aws_iam_policy" "example_policy" {
+  count   = data.aws_iam_role.existing_role.exists ? 1 : 0
+  name    = "example-policy"
+  policy  = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action   = ["s3:GetObject"],
+        Effect   = "Allow",
+        Resource = "*",
+      },
+    ],
+  })
+}
+
+# Attach the policy to the existing role
+resource "aws_iam_policy_attachment" "example_attachment" {
+  count       = data.aws_iam_role.existing_role.exists ? 1 : 0
+  name        = "example-policy-attachment"
+  roles       = [data.aws_iam_role.existing_role.name]
+  policy_arn  = aws_iam_policy.example_policy[0].arn
+}
+
+
+
+
+
+
+
+
+
+provider "aws" {
+  region = "us-west-2"  # Update with your desired region
+}
+
+# Check if the IAM role exists
+data "aws_iam_role" "existing_role" {
+  name = "existing-role-name"  # Replace with the actual IAM role name
+}
+
+# Create a new IAM policy
+resource "aws_iam_policy" "example_policy" {
+  name   = "example-policy"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action   = ["s3:GetObject"],
+        Effect   = "Allow",
+        Resource = "*",
+      },
+    ],
+  })
+}
+
+# Detach all existing policies from the role
+resource "aws_iam_policy_attachment" "detach_existing_policies" {
+  count     = data.aws_iam_role.existing_role.exists ? length(data.aws_iam_role.existing_role.policy_ids) : 0
+  policy_arn = element(data.aws_iam_role.existing_role.policy_arns, count.index)
+  roles      = [data.aws_iam_role.existing_role.name]
+}
+
+# Attach the newly created policy to the role
+resource "aws_iam_policy_attachment" "attach_new_policy" {
+  count       = data.aws_iam_role.existing_role.exists ? 1 : 0
+  name        = "example-policy-attachment"
+  roles       = [data.aws_iam_role.existing_role.name]
+  policy_arn  = aws_iam_policy.example_policy.arn
+}

@@ -2,50 +2,46 @@ provider "aws" {
   region = "us-west-2"
 }
 
-locals {
-  role_name = "your-existing-role-name"
-}
-
-# Fetch existing IAM role
+# Check if the role exists
 data "aws_iam_role" "existing" {
-  name = local.role_name
+  name = "existing-role-name"
 }
 
-# Create a policy
-resource "aws_iam_policy" "my_policy" {
-  count       = data.aws_iam_role.existing ? 1 : 0
-  name        = "my-policy"
-  path        = "/"
-  description = "My test policy"
-  policy      = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "s3:ListBucket",
-      "Effect": "Allow",
-      "Resource": "arn:aws:s3:::example-bucket"
-    }
-  ]
-}
-EOF
+# Create a new policy
+resource "aws_iam_policy" "new_policy" {
+  name        = "new-policy"
+  description = "A test policy"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "s3:ListBucket"
+        ]
+        Effect = "Allow"
+        Resource = "arn:aws:s3:::example-bucket"
+      }
+    ]
+  })
 }
 
-# Detach all existing attached policies
-data "aws_iam_role_policies" "existing_policies" {
-  role_name = local.role_name
+# Attach the new policy to the existing role
+resource "aws_iam_role_policy_attachment" "new_policy_attach" {
+  role       = data.aws_iam_role.existing.name
+  policy_arn = aws_iam_policy.new_policy.arn
 }
 
-resource "aws_iam_role_policy_attachment" "remove_old_policies" {
-  for_each   = toset(data.aws_iam_role_policies.existing_policies.policy_names)
-  role       = local.role_name
-  policy_arn = each.key
-  count      = 0 # set to 0 to detach
-}
+# Provisioner to detach all old policies
+# Note: Provisioners are not recommended, use carefully
+resource "null_resource" "detach_old_policies" {
+  provisioner "local-exec" {
+    command = "aws iam list-attached-role-policies --role-name ${data.aws_iam_role.existing.name} --query 'AttachedPolicies[].PolicyArn' --output text | xargs -n 1 aws iam detach-role-policy --role-name ${data.aws_iam_role.existing.name} --policy-arn"
+  }
+  
+  triggers = {
+    always_run = timestamp()
+  }
 
-# Attach the new policy
-resource "aws_iam_role_policy_attachment" "my_policy_attach" {
-  depends_on  = [aws_iam_role_policy_attachment.remove_old_policies]
-  role        = local.role_name
-  policy_arn  = aws_iam_policy.my_policy[0].arn
+  depends_on = [aws_iam_role_policy_attachment.new_policy_attach]
 }

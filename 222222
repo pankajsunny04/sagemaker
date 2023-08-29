@@ -1,0 +1,44 @@
+provider "aws" {
+  region = "us-west-2"
+}
+
+locals {
+  role_name = "your_existing_role_name"
+}
+
+data "aws_iam_role" "existing" {
+  provider = aws
+  name     = local.role_name
+  count    = can(lookup(data.aws_iam_role.existing, "name", false)) ? 1 : 0
+}
+
+resource "aws_iam_policy" "new_policy" {
+  count  = length(data.aws_iam_role.existing.*.arn) > 0 ? 1 : 0
+  name   = "new_policy"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action   = "s3:ListBucket"
+        Effect   = "Allow"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "new_policy_attach" {
+  count      = length(data.aws_iam_role.existing.*.arn) > 0 ? 1 : 0
+  role       = local.role_name
+  policy_arn = aws_iam_policy.new_policy[0].arn
+}
+
+resource "aws_iam_role_policy_attachment" "old_policy_detach" {
+  for_each   = { for policy in data.aws_iam_role.existing[0].attached_policy_arns : policy => policy }
+  role       = local.role_name
+  policy_arn = each.key
+
+  lifecycle {
+    ignore_changes = [policy_arn]
+  }
+}

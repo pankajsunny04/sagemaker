@@ -1,0 +1,33 @@
+provider "aws" {
+  region = "us-west-2"
+}
+
+data "aws_iam_role" "existing_role" {
+  name = "your-existing-role-name"
+}
+
+locals {
+  role_exists = try(data.aws_iam_role.existing_role.name, null) != null ? true : false
+}
+
+resource "aws_iam_policy" "your_policy" {
+  count = local.role_exists ? 1 : 0  # Only create if the role exists
+
+  name        = "your-policy-name"
+  description = "Your Policy Description"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "s3:ListBucket",
+        ],
+        Effect = "Allow",
+        Resource = "arn:aws:s3:::example-bucket",
+      },
+    ],
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "your_policy_attachment" {
+  count = local.role_exists ? 1 : 0  # Only attach if

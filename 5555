@@ -1,15 +1,23 @@
-locals {
-  role_name = "my-existing-role"
+provider "aws" {
+  region = "us-east-1"
 }
 
+locals {
+  role_name = "existing-role-name"
+}
+
+# Fetch existing IAM role if it exists
 data "aws_iam_role" "existing" {
   name = local.role_name
+  # Skip the failure and count as 0 if not found
+  count = can(lookup(data.aws_iam_role.existing, "name", null)) ? 1 : 0
 }
 
-resource "aws_iam_policy" "my_policy" {
-  count       = data.aws_iam_role.existing ? 1 : 0
-  name        = "my-policy"
-  description = "A test policy"
+# Create IAM policy if role exists
+resource "aws_iam_policy" "example" {
+  count       = length(data.aws_iam_role.existing.*.name) > 0 ? 1 : 0
+  name        = "example-policy"
+  description = "An example policy"
   policy      = <<EOF
 {
   "Version": "2012-10-17",
@@ -20,7 +28,7 @@ resource "aws_iam_policy" "my_policy" {
       ],
       "Effect": "Allow",
       "Resource": [
-        "arn:aws:s3:::example-bucket"
+        "*"
       ]
     }
   ]
@@ -28,25 +36,25 @@ resource "aws_iam_policy" "my_policy" {
 EOF
 }
 
-resource "aws_iam_role_policy_attachment" "my_policy_attach" {
-  count      = data.aws_iam_role.existing && aws_iam_policy.my_policy[0] ? 1 : 0
-  role       = data.aws_iam_role.existing.name
-  policy_arn = aws_iam_policy.my_policy[0].arn
-}
-
-# Detach all old policies from the role
-data "aws_iam_role_policies" "existing_policies" {
-  role_name = local.role_name
-}
-
-resource "aws_iam_role_policy_attachment" "old_policies_detach" {
-  for_each = toset(data.aws_iam_role_policies.existing_policies.policy_names)
-
+# Detach all existing managed policies from role
+resource "aws_iam_role_policy_attachment" "old_attachments" {
+  for_each   = { for policy in data.aws_iam_role.existing[0].managed_policy_arns : policy => policy }
   role       = local.role_name
   policy_arn = each.value
+
+  # Force terraform to remove existing attachments first
   lifecycle {
     create_before_destroy = false
-    ignore_changes        = [role, policy_arn]
   }
 }
 
+# Attach new policy
+resource "aws_iam_role_policy_attachment" "example_attach" {
+  count      = length(data.aws_iam_role.existing.*.name) > 0 ? 1 : 0
+  role       = local.role_name
+  policy_arn = aws_iam_policy.example[0].arn
+
+  depends_on = [
+    aws_iam_role_policy_attachment.old_attachments
+  ]
+}

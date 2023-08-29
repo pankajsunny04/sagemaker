@@ -131,3 +131,46 @@ resource "aws_sagemaker_user_profile_lifecycle_config" "example" {
 
   lifecycle_config_name = aws_sagemaker_notebook_instance_lifecycle_config.config.name
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+resource "aws_sagemaker_domain" "example" {
+  domain_name = "my-sagemaker-domain"
+  auth_mode   = "IAM"
+
+  provisioner "local-exec" {
+    command = "aws sagemaker update-domain --domain-id ${aws_sagemaker_domain.example.domain_id} --user-profile-name default --app-network-access-type InternetOnly --default-user-settings ProjectTemplateEnabled=true,JumpStartEnabled=true"
+  }
+
+  // Other configuration...
+}
+
+
+
+resource "aws_cloudformation_stack" "sagemaker_features" {
+  name = "sagemaker-features-stack"
+  template_body = <<-EOF
+    <your CloudFormation template content here>
+  EOF
+}
+
+
+
+data "aws_cloudformation_stack" "sagemaker_features" {
+  name = aws_cloudformation_stack.sagemaker_features.name
+}
+
+resource "aws_sagemaker_notebook_instance" "example" {
+  # Use data.aws_cloudformation_stack.sagemaker_features.outputs to set attributes
+}

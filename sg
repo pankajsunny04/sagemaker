@@ -1,0 +1,33 @@
+provider "aws" {
+  region = "us-west-1"  # Update with your desired region
+}
+
+variable "desired_security_group_name" {
+  description = "Desired name for the security group"
+  default     = "my-security-group"
+}
+
+data "aws_security_group" "existing_security_group" {
+  name = var.desired_security_group_name
+}
+
+resource "aws_security_group" "create_security_group" {
+  count        = data.aws_security_group.existing_security_group.id ? 0 : 1
+  name         = var.desired_security_group_name
+  description  = "My security group description"
+  
+  // Define your security group rules here
+  // ...
+}
+
+resource "aws_instance" "example" {
+  ami           = "ami-12345678"  # Replace with a valid AMI ID
+  instance_type = "t2.micro"
+
+  vpc_security_group_ids = concat(
+    data.aws_security_group.existing_security_group.id != null ? [data.aws_security_group.existing_security_group.id] : [],
+    aws_security_group.create_security_group[*].id
+  )
+  
+  // Other instance configuration...
+}

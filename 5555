@@ -1,46 +1,46 @@
-provider "aws" {
-  region = "us-east-1"
+data "aws_iam_role" "existing_role" {
+  name = "existing_role_name" # replace with your existing IAM role name
 }
 
-locals {
-  role_name = "existing_role_name"
-}
-
-data "aws_iam_role" "existing" {
-  name = local.role_name
-}
-
-resource "aws_iam_policy" "example_policy" {
-  count       = data.aws_iam_role.existing ? 1 : 0
-  name        = "example_policy"
-  description = "An example policy"
-  policy      = <<EOT
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "s3:ListBucket",
-      "Effect": "Allow",
-      "Resource": "arn:aws:s3:::example_bucket"
-    }
-  ]
-}
-EOT
-}
-
+# Fetch attached policies to the existing role
 data "aws_iam_role_policies" "existing_policies" {
-  role_name = local.role_name
+  role_name = data.aws_iam_role.existing_role.name
 }
 
-resource "aws_iam_role_policy_attachment" "old_policy_detach" {
-  for_each   = toset(data.aws_iam_role_policies.existing_policies.policy_names)
-  role       = data.aws_iam_role.existing.name
-  policy_arn = each.value
-  count      = 0 # Set to 0 to detach all old policies, set to 1 if you want to attach them
+# Detach all existing policies
+resource "aws_iam_role_policy_attachment" "detach_old_policies" {
+  count      = length(data.aws_iam_role_policies.existing_policies.policy_names)
+  role       = data.aws_iam_role.existing_role.name
+  policy_arn = element(data.aws_iam_role_policies.existing_policies.policy_arns, count.index)
+  lifecycle {
+    create_before_destroy = false
+    ignore_changes        = [policy_arn]
+  }
 }
 
-resource "aws_iam_role_policy_attachment" "example_attach" {
-  count      = data.aws_iam_role.existing ? 1 : 0
-  role       = data.aws_iam_role.existing.name
-  policy_arn = aws_iam_policy.example_policy[0].arn
+# Conditionally create a new policy only if the IAM role exists
+resource "aws_iam_policy" "new_policy" {
+  count       = data.aws_iam_role.existing_role ? 1 : 0
+  name        = "new_policy"
+  description = "My new policy"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "s3:ListBucket"
+        ]
+        Effect   = "Allow"
+        Resource = ["*"]
+      }
+    ]
+  })
+}
+
+# Attach new policy to existing role
+resource "aws_iam_role_policy_attachment" "attach_new_policy" {
+  count      = data.aws_iam_role.existing_role ? 1 : 0
+  role       = data.aws_iam_role.existing_role.name
+  policy_arn = aws_iam_policy.new_policy[0].arn
+  depends_on = [aws_iam_role_policy_attachment.detach_old_policies]
 }

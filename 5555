@@ -1,48 +1,58 @@
-data "aws_iam_role" "existing" {
+provider "aws" {
+  region = "us-west-2"
+}
+
+# Fetch existing IAM role
+data "aws_iam_role" "existing_role" {
   name = "existing-role-name"
 }
 
-
-resource "aws_iam_policy" "example_policy" {
-  name        = "example-policy"
-  description = "An example policy"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
+# Create a new policy
+resource "aws_iam_policy" "new_policy" {
+  name        = "new-policy"
+  description = "A new policy"
+  policy      = jsonencode({
+    Version = "2012-10-17"
     Statement = [
       {
         Action = [
-          "s3:ListBucket",
-        ],
-        Effect = "Allow",
+          "s3:ListBucket"
+        ]
+        Effect   = "Allow"
         Resource = [
-          "arn:aws:s3:::example-bucket",
-        ],
-      },
+          "arn:aws:s3:::my_bucket"
+        ]
+      }
     ]
   })
 }
 
-
-
-resource "aws_iam_role_policy_attachment" "attach_policy" {
-  role       = data.aws_iam_role.existing.name
-  policy_arn = aws_iam_policy.example_policy.arn
+# Attach the new policy to the existing role
+resource "aws_iam_role_policy_attachment" "new_policy_attach" {
+  role       = data.aws_iam_role.existing_role.name
+  policy_arn = aws_iam_policy.new_policy.arn
 }
 
-
+# Detach all old policies from the role
+# Use a null_resource to run a local script
 resource "null_resource" "detach_old_policies" {
+
   provisioner "local-exec" {
-    command = <<EOT
-      for policy_arn in $(aws iam list-attached-role-policies --role-name ${data.aws_iam_role.existing.name} --query 'AttachedPolicies[].PolicyArn' --output text); do
-        aws iam detach-role-policy --role-name ${data.aws_iam_role.existing.name} --policy-arn $policy_arn
+    command = <<EOL
+      for arn in $(aws iam list-attached-role-policies --role-name ${data.aws_iam_role.existing_role.name} --query 'AttachedPolicies[?PolicyArn!=`${aws_iam_policy.new_policy.arn}`].PolicyArn' --output text); do
+        aws iam detach-role-policy --role-name ${data.aws_iam_role.existing_role.name} --policy-arn $arn
       done
-    EOT
+EOL
+    environment = {
+      AWS_DEFAULT_REGION = "us-west-2"
+    }
   }
 
   triggers = {
     always_run = "${timestamp()}"
   }
 
-  depends_on = [aws_iam_role_policy_attachment.attach_policy]
+  depends_on = [
+    aws_iam_role_policy_attachment.new_policy_attach
+  ]
 }

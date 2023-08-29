@@ -1,23 +1,14 @@
-provider "aws" {
-  region = "us-east-1"
-}
-
 locals {
-  role_name = "existing-role-name"
+  role_name = "my-existing-role"
 }
 
-# Fetch existing IAM role if it exists
 data "aws_iam_role" "existing" {
   name = local.role_name
-  # Skip the failure and count as 0 if not found
-  count = can(lookup(data.aws_iam_role.existing, "name", null)) ? 1 : 0
 }
 
-# Create IAM policy if role exists
-resource "aws_iam_policy" "example" {
-  count       = length(data.aws_iam_role.existing.*.name) > 0 ? 1 : 0
-  name        = "example-policy"
-  description = "An example policy"
+resource "aws_iam_policy" "my_policy" {
+  name        = "my-policy"
+  description = "A test policy"
   policy      = <<EOF
 {
   "Version": "2012-10-17",
@@ -28,7 +19,7 @@ resource "aws_iam_policy" "example" {
       ],
       "Effect": "Allow",
       "Resource": [
-        "*"
+        "arn:aws:s3:::example-bucket"
       ]
     }
   ]
@@ -36,25 +27,39 @@ resource "aws_iam_policy" "example" {
 EOF
 }
 
-# Detach all existing managed policies from role
-resource "aws_iam_role_policy_attachment" "old_attachments" {
-  for_each   = { for policy in data.aws_iam_role.existing[0].managed_policy_arns : policy => policy }
-  role       = local.role_name
-  policy_arn = each.value
+resource "aws_iam_role_policy_attachment" "attach_policy" {
+  count      = data.aws_iam_role.existing ? 1 : 0
+  role       = data.aws_iam_role.existing.name
+  policy_arn = aws_iam_policy.my_policy.arn
+}
 
-  # Force terraform to remove existing attachments first
-  lifecycle {
-    create_before_destroy = false
+# This can be used to detach all existing inline policies from the role
+resource "null_resource" "detach_policies" {
+  provisioner "local-exec" {
+    command = <<EOT
+      for policy in $(aws iam list-role-policies --role-name ${local.role_name} --query 'PolicyNames' --output text); do
+        aws iam delete-role-policy --role-name ${local.role_name} --policy-name $policy
+      done
+EOT
+    environment = {
+      AWS_DEFAULT_REGION = "us-west-2"
+    }
+  }
+  triggers = {
+    role_name = local.role_name
   }
 }
 
-# Attach new policy
-resource "aws_iam_role_policy_attachment" "example_attach" {
-  count      = length(data.aws_iam_role.existing.*.name) > 0 ? 1 : 0
-  role       = local.role_name
-  policy_arn = aws_iam_policy.example[0].arn
-
-  depends_on = [
-    aws_iam_role_policy_attachment.old_attachments
-  ]
+# Re-attach all the policies to the role after detaching old ones
+resource "null_resource" "attach_new_policy" {
+  depends_on = [null_resource.detach_policies]
+  provisioner "local-exec" {
+    command = "aws iam attach-role-policy --role-name ${local.role_name} --policy-arn ${aws_iam_policy.my_policy.arn}"
+    environment = {
+      AWS_DEFAULT_REGION = "us-west-2"
+    }
+  }
+  triggers = {
+    role_name = local.role_name
+  }
 }

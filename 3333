@@ -1,0 +1,59 @@
+provider "aws" {
+  region = "us-east-1"
+}
+
+data "aws_iam_role" "existing_role" {
+  name = "existing_role_name"  # replace with the name of the existing IAM role
+
+  # If the role does not exist, Terraform will proceed without an error
+  # but the 'aws_iam_policy' and 'aws_iam_role_policy_attachment' resources will not be created.
+  count = can(lookup(data.aws_iam_role.existing_role, "name", null)) ? 1 : 0
+}
+
+resource "aws_iam_policy" "new_policy" {
+  name        = "new_policy_name" # replace with desired name
+  description = "new_policy_description" # replace with desired description
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "s3:ListBucket",
+        ],
+        Effect = "Allow",
+        Resource = "*",
+      },
+    ]
+  })
+
+  # Create this policy only if the role exists
+  count = length(data.aws_iam_role.existing_role.*.name) > 0 ? 1 : 0
+}
+
+resource "aws_iam_role_policy_attachment" "new_policy_attachment" {
+  role       = data.aws_iam_role.existing_role[0].name
+  policy_arn = aws_iam_policy.new_policy[0].arn
+
+  # Attach this policy only if the role exists
+  count = length(data.aws_iam_role.existing_role.*.name) > 0 ? 1 : 0
+}
+
+# Use 'aws_iam_role_policy_attachment' data block to find existing policy attachments
+data "aws_iam_role_policy_attachments" "existing_policy_attachments" {
+  role_name = data.aws_iam_role.existing_role[0].name
+
+  # Only lookup if the role exists
+  count = length(data.aws_iam_role.existing_role.*.name) > 0 ? 1 : 0
+}
+
+# Detach all old policies
+resource "aws_iam_role_policy_attachment" "remove_old_policies" {
+  for_each = toset(data.aws_iam_role_policy_attachments.existing_policy_attachments[0].policy_arns)
+
+  role       = data.aws_iam_role.existing_role[0].name
+  policy_arn = each.key
+
+  # Explicitly indicate that these policies should be detached
+  count = 0
+}

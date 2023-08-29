@@ -1,18 +1,14 @@
-provider "aws" {
-  region = "us-west-2"
+locals {
+  role_name = "my-existing-role"
 }
 
 data "aws_iam_role" "existing" {
-  name = "existing-role-name"
+  name = local.role_name
 }
 
-locals {
-  role_exists = can(data.aws_iam_role.existing.arn) ? true : false
-}
-
-resource "aws_iam_policy" "new_policy" {
-  count       = local.role_exists ? 1 : 0
-  name        = "my-new-policy"
+resource "aws_iam_policy" "my_policy" {
+  count       = data.aws_iam_role.existing ? 1 : 0
+  name        = "my-policy"
   description = "A test policy"
   policy      = <<EOF
 {
@@ -23,30 +19,34 @@ resource "aws_iam_policy" "new_policy" {
         "s3:ListBucket"
       ],
       "Effect": "Allow",
-      "Resource": "*"
+      "Resource": [
+        "arn:aws:s3:::example-bucket"
+      ]
     }
   ]
 }
 EOF
 }
 
-resource "aws_iam_role_policy_attachment" "new_policy_attachment" {
-  count      = local.role_exists ? 1 : 0
+resource "aws_iam_role_policy_attachment" "my_policy_attach" {
+  count      = data.aws_iam_role.existing && aws_iam_policy.my_policy[0] ? 1 : 0
   role       = data.aws_iam_role.existing.name
-  policy_arn = aws_iam_policy.new_policy[0].arn
+  policy_arn = aws_iam_policy.my_policy[0].arn
 }
 
-resource "aws_iam_role_policy_attachment" "old_policy_detach" {
-  for_each   = { for p in data.aws_iam_role.existing.attached_policies : p.policy_arn => p.policy_name }
-  role       = data.aws_iam_role.existing.name
-  policy_arn = each.key
+# Detach all old policies from the role
+data "aws_iam_role_policies" "existing_policies" {
+  role_name = local.role_name
+}
 
+resource "aws_iam_role_policy_attachment" "old_policies_detach" {
+  for_each = toset(data.aws_iam_role_policies.existing_policies.policy_names)
+
+  role       = local.role_name
+  policy_arn = each.value
   lifecycle {
     create_before_destroy = false
     ignore_changes        = [role, policy_arn]
   }
 }
 
-data "aws_iam_role" "existing" {
-  depends_on = [aws_iam_role_policy_attachment.new_policy_attachment]
-}

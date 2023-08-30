@@ -1,0 +1,41 @@
+provider "aws" {
+  region = "us-west-2"
+}
+
+# Fetch existing VPC information by VPC ID
+data "aws_vpc" "existing_vpc" {
+  id = "vpc-0xxxxxxx"  # Replace with your actual VPC ID
+}
+
+# Create a new policy using the CIDR block of the existing VPC
+resource "aws_iam_policy" "policy_with_vpc_cidr" {
+  name        = "policy_with_vpc_cidr"
+  description = "A test policy that uses CIDR of existing VPC"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "ec2:AuthorizeSecurityGroupIngress",
+        Effect = "Allow",
+        Resource = "*",
+        Condition = {
+          IpAddress = {
+            "aws:SourceIp" = data.aws_vpc.existing_vpc.cidr_block
+          }
+        }
+      }
+    ]
+  })
+}
+
+# Assuming that you have an existing role you want to attach this policy to
+data "aws_iam_role" "existing" {
+  name = "existing-role-name"  # Replace with your actual role name
+}
+
+# Attach the policy to the existing role
+resource "aws_iam_role_policy_attachment" "attach_policy_to_existing_role" {
+  role       = data.aws_iam_role.existing.name
+  policy_arn = aws_iam_policy.policy_with_vpc_cidr.arn
+}

@@ -1,3 +1,13 @@
+locals {
+  email_string = join(",", var.email_ids)
+}
+
+output "emails" {
+  value = local.email_string
+}
+
+
+
 provider "aws" {
   region = "us-east-1"
 }

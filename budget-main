@@ -1,0 +1,41 @@
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_sns_topic" "budget_alerts_topic" {
+  name = "budget-alerts-topic"
+}
+
+resource "aws_budgets_budget" "my_budget" {
+  name = "my-budget"
+  budget_type = "COST"
+  limit_amount = "1000"
+  limit_unit = "USD"
+  time_unit = "MONTHLY"
+  
+  cost_filters = {
+    Service = ["ec2"]
+  }
+}
+
+resource "aws_budgets_budget_action" "stop_ec2_instances" {
+  budget_name = aws_budgets_budget.my_budget.name
+  execution_role_arn = "arn:aws:iam::123456789012:role/BudgetActionExecutionRole"
+  action_type = "APPLY_IAM_POLICY"
+  action_threshold {
+    action_threshold_type = "PERCENTAGE"
+    action_threshold_value = 100.0
+  }
+  
+  definition {
+    iam_action_definition {
+      policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+      roles = ["BudgetActionTargetRole"]
+    }
+  }
+  
+  subscriber {
+    subscription_type = "SNS"
+    address = aws_sns_topic.budget_alerts_topic.arn
+  }
+}

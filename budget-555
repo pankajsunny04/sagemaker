@@ -118,3 +118,71 @@ resource "aws_sns_topic" "example" {
   name = "example-sns-topic"
 }
 
+
+
+
+
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_budgets_budget" "my_budget" {
+  name_prefix            = "my-budget-"
+  budget_type            = "COST"
+  limit_amount           = "1000"
+  limit_unit             = "USD"
+  time_period_end        = "2087-06-15_00:00"
+  time_unit              = "MONTHLY"
+
+  cost_filters = {
+    Service = ["ec2"]
+  }
+}
+
+# Assuming Terraform will someday support AWS Budget Actions natively
+# resource "aws_budgets_budget_action" "my_budget_action" {
+#   budget_name = aws_budgets_budget.my_budget.name
+#   action_type = "APPLY_IAM_POLICY"
+#   action_threshold {
+#     action_threshold_type  = "PERCENTAGE"
+#     action_threshold_value = 100.0
+#   }
+
+#   # Define IAM Role or User Group here
+#   target_id {
+#     type  = "IAM_ROLE"
+#     value = aws_iam_role.my_role.arn
+#   }
+# }
+
+# Or you can execute AWS CLI commands to create AWS Budget Actions
+# resource "null_resource" "aws_cli_budget_action" {
+#   provisioner "local-exec" {
+#     command = <<-EOT
+#       aws budgets create-budget-action --cli-input-json file://budget-action.json
+#     EOT
+
+#     environment = {
+#       BUDGET_NAME = aws_budgets_budget.my_budget.name
+#       IAM_ROLE_ARN = aws_iam_role.my_role.arn
+#     }
+#   }
+# }
+
+resource "aws_iam_role" "my_role" {
+  name = "my_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "budgets.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+

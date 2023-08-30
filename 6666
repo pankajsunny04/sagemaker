@@ -1,0 +1,4 @@
+cost_filters = {
+    Service = "Amazon SageMaker"
+    TagKeyValue = ["user:project$MySageMakerProject"]
+  }

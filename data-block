@@ -16,3 +16,40 @@ data "local_file" "example" {
 output "script_output" {
   value = data.local_file.example.content
 }
+
+
+
+
+
+
+#!/bin/bash
+
+# Replace this with your actual EFS File System ID
+FILE_SYSTEM_ID="fs-12345678"
+
+# Replace this with your output file name
+OUTPUT_FILE="security_group_ids.txt"
+
+# Fetch the mount target ID
+MOUNT_TARGET_ID=$(aws efs describe-mount-targets \
+  --file-system-id ${FILE_SYSTEM_ID} \
+  --query 'MountTargets[0].MountTargetId' \
+  --output text)
+
+# Check if the mount target ID is empty or not
+if [[ -z "$MOUNT_TARGET_ID" ]]; then
+  echo "No mount target found for file system ID ${FILE_SYSTEM_ID}"
+  exit 1
+fi
+
+# Fetch the security group ID
+SECURITY_GROUP_ID=$(aws efs describe-mount-target-security-groups \
+  --mount-target-id ${MOUNT_TARGET_ID} \
+  --query 'SecurityGroups[0]' \
+  --output text)
+
+# Write the security group ID to a file
+echo ${SECURITY_GROUP_ID} > ${OUTPUT_FILE}
+
+# Output the security group ID for confirmation
+echo "Security group ID ${SECURITY_GROUP_ID} written to ${OUTPUT_FILE}"

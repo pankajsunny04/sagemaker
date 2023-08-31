@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Define AWS CLI profile (optional)
+AWS_PROFILE="your-aws-profile"
+
+# Define budget name
+BUDGET_NAME="your-budget-name"
+
+# Define the tag filter key-value pair
+TAG_KEY="Environment"
+TAG_VALUE="Production"
+
+# Fetch the existing budget
+aws budgets describe-budgets --account-id your-account-id --profile $AWS_PROFILE > budgets.json
+
+# Parse the budget by budget name and store in a separate file (Requires jq to parse JSON)
+jq -r --arg BUDGET_NAME "$BUDGET_NAME" '.Budgets[] | select(.BudgetName==$BUDGET_NAME)' budgets.json > specific-budget.json
+
+# Update the specific-budget.json to include the new tag filter
+jq --arg TAG_KEY "$TAG_KEY" --arg TAG_VALUE "$TAG_VALUE" '.CostFilters += {($TAG_KEY): [$TAG_VALUE]}' specific-budget.json > updated-budget.json
+
+# Update the budget with the new tag filter
+aws budgets update-budget --account-id your-account-id --budget file://updated-budget.json --profile $AWS_PROFILE
+
+# Clean up (Optional)
+rm budgets.json specific-budget.json updated-budget.json

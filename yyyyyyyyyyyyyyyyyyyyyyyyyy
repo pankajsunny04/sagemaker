@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Define the budget name
+BUDGET_NAME="MyBudget"
+
+# Get the current budget configuration
+BUDGET=$(aws budgets describe-budgets --query "Budgets[?BudgetName=='$BUDGET_NAME'] | [0]" --output json)
+
+if [ -z "$BUDGET" ]; then
+  echo "Budget with the name $BUDGET_NAME not found!"
+  exit 1
+fi
+
+# Update the service and tag filter
+UPDATED_BUDGET=$(echo $BUDGET | \
+  jq '.CostFilters |= . + {"Service": ["Amazon Elastic Compute Cloud - Compute", "Amazon Simple Storage Service"]}' | \
+  jq '.CostFilters |= . + {"TagKeyValue": ["Environment$Production"]}'))
+
+# Update the budget
+aws budgets update-budget --account-id $(echo $BUDGET | jq -r '.AccountId') \
+  --new-budget "$UPDATED_BUDGET"
+
+# Confirm the changes
+echo "Budget updated successfully."

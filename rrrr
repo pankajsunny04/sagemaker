@@ -1,0 +1,7 @@
+cost_filters = {
+    Service = "Amazon Elastic Compute Cloud - Compute"  # Filter by EC2 Service
+
+    TagKeyValue = [
+      "user:Environment$Production",  # Filter by Environment:Production tag
+    ]
+  }

@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Define budget parameters
+BUDGET_NAME="YourBudgetName"
+ACCOUNT_ID="YourAWSAccountID"
+
+# Define service filter (e.g., for Amazon EC2)
+SERVICE_FILTER='{"Key":"SERVICE","Values":["Amazon Elastic Compute Cloud - Compute"]}'
+
+# Define tag filter (e.g., tag key "Environment" and tag value "Production")
+TAG_FILTER='{"Key":"Environment","Values":["Production"]}'
+
+# Use jq to construct the JSON payload with filters
+JSON_PAYLOAD=$(jq -n \
+                --arg budgetName "$BUDGET_NAME" \
+                --argjson serviceFilter "$SERVICE_FILTER" \
+                --argjson tagFilter "$TAG_FILTER" \
+                '{
+                  "AccountId": $ACCOUNT_ID,
+                  "Budget": {
+                    "BudgetName": $budgetName,
+                    "CostFilters": {
+                      "Service": $serviceFilter.Values,
+                      "TagKeyValue": [$tagFilter.Key + "$" + $tagFilter.Values[0]]
+                    }
+                  }
+                }')
+
+# Run the AWS CLI command to modify the budget
+aws budgets modify-budget --cli-input-json "$JSON_PAYLOAD"

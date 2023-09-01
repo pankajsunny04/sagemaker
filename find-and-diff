@@ -1,0 +1,27 @@
+variable "find_words" {
+  description = "List of words to find."
+  default = ["FIND1", "FIND2"]
+}
+
+variable "replace_words" {
+  description = "List of words to replace."
+  default = ["REPLACE1", "REPLACE2"]
+}
+
+resource "null_resource" "find_and_replace" {
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+
+  provisioner "local-exec" {
+    command = <<EOT
+      for i in "${length(var.find_words)}"; do
+        sed -i 's/${element(var.find_words, count.index)}/${element(var.replace_words, count.index)}/g' /path/to/your/file.txt
+      done
+EOT
+    environment = {
+      FIND_WORDS    = join(",", var.find_words)
+      REPLACE_WORDS = join(",", var.replace_words)
+    }
+  }
+}

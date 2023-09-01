@@ -1,0 +1,9 @@
+data "aws_caller_identity" "current" {}
+
+data "aws_iam_role" "current_role" {
+  name = data.aws_caller_identity.current.account_id
+}
+
+output "role_unique_id" {
+  value = data.aws_iam_role.current_role.unique_id
+}

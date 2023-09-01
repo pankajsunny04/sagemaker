@@ -1,0 +1,40 @@
+resource "null_resource" "find_replace_example" {
+
+  provisioner "local-exec" {
+    command = <<EOL
+      #!/bin/bash
+      sed -i 's/find_this/replace_with_this/g' /path/to/your/file.txt
+    EOL
+
+    environment = {
+      VAR = "value"
+    }
+  }
+}
+
+
+
+#!/bin/bash
+
+# Define AWS profile, budget name, and budget region
+AWS_PROFILE="your-profile-name"
+BUDGET_NAME="your-budget-name"
+BUDGET_REGION="us-east-1"
+
+# Fetch the existing budget definition
+aws budgets describe-budgets \
+    --account-id 123456789012 \
+    --profile $AWS_PROFILE \
+    --query "Budgets[?BudgetName=='$BUDGET_NAME']" \
+    --output json > existing_budget.json
+
+# Update the existing budget JSON
+# This is a basic example using jq to add a filter for the "EC2" service
+jq '.[0].BudgetLimit |= . + {"Filters": [{"Type": "SERVICE", "Values": ["EC2"]}, {"Type": "TAG", "Values": ["key=value"]}]}' existing_budget.json > modified_budget.json
+
+# Update the existing budget
+aws budgets update-budget \
+    --account-id 123456789012 \
+    --budget file://modified_budget.json \
+    --profile $AWS_PROFILE \
+    --region $BUDGET_REGION

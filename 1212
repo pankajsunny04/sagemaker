@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Budget name
+BUDGET_NAME="Your-Budget-Name"
+
+# Fetch existing budget details
+EXISTING_BUDGET=$(aws budgets describe-budgets --account-id your_account_id --query "Budgets[?BudgetName=='$BUDGET_NAME'] | [0]")
+
+# Extract the current CostFilters if any
+EXISTING_COST_FILTERS=$(echo "$EXISTING_BUDGET" | jq '.CostFilters')
+
+# Add or update the CostFilters JSON with the service and tag filters
+NEW_COST_FILTERS=$(echo "$EXISTING_COST_FILTERS" | jq ' . + { "Service": ["Amazon EC2"], "TagKeyValue": ["user:tag-key$tag-value"] }')
+
+# Generate the new budget definition by replacing the CostFilters
+NEW_BUDGET=$(echo "$EXISTING_BUDGET" | jq ".CostFilters = $NEW_COST_FILTERS")
+
+# Update the existing budget
+aws budgets update-budget --account-id your_account_id --budget "$NEW_BUDGET"

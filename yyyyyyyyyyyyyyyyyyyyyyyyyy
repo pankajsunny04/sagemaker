@@ -1,3 +1,33 @@
+variable "find_words" {
+  default = ["world", "user"]
+}
+
+variable "replace_words" {
+  default = ["Terraform", "developer"]
+}
+
+resource "null_resource" "find_and_replace" {
+
+  provisioner "local-exec" {
+    command = <<EOT
+      for i in ${length(var.find_words)}; do
+        find_word="${element(var.find_words, i)}"
+        replace_word="${element(var.replace_words, i)}"
+        sed -i "s/$find_word/$replace_word/g" example.txt
+      done
+    EOT
+    environment = {
+      FIND    = join(" ", var.find_words)
+      REPLACE = join(" ", var.replace_words)
+    }
+  }
+}
+
+
+
+
+
+
 #!/bin/bash
 
 # Define the budget name

@@ -1,0 +1,23 @@
+resource "null_resource" "find_and_replace" {
+  provisioner "local-exec" {
+    command = "sed -i 's/findme/replacewithme/g' example.txt"
+  }
+
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+}
+
+
+data "template_file" "example" {
+  template = file("${path.module}/example.template")
+
+  vars = {
+    findme = "replacewithme"
+  }
+}
+
+resource "local_file" "example" {
+  content  = data.template_file.example.rendered
+  filename = "${path.module}/example.txt"
+}

@@ -1,0 +1,15 @@
+variable "replacement_word" {
+  default = "orange"
+}
+
+resource "null_resource" "find_and_replace" {
+  provisioner "local-exec" {
+    command = <<EOT
+      sed -i 's/apple/${var.replacement_word}/g' example.txt
+    EOT
+  }
+  
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+}

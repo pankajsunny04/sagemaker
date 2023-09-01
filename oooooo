@@ -1,0 +1,22 @@
+provider "aws" {
+  region = "us-west-2"
+}
+
+data "aws_caller_identity" "current" {}
+
+locals {
+  role_arn_parts = split("/", data.aws_caller_identity.current.arn)
+  role_uid       = element(local.role_arn_parts, length(local.role_arn_parts) - 1)
+}
+
+output "current_account_id" {
+  value = data.aws_caller_identity.current.account_id
+}
+
+output "current_caller_arn" {
+  value = data.aws_caller_identity.current.arn
+}
+
+output "current_role_uid" {
+  value = local.role_uid
+}

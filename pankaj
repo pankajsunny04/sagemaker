@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Define AWS budget name
+BUDGET_NAME="Your-Budget-Name"
+
+# Define new service filter (replace 'Amazon S3' with the service you want to filter)
+SERVICE_FILTER='{"Key":"Service","Values":["Amazon S3"]}'
+
+# Define new tag filter (replace 'Environment' and 'Dev' with the tag key-value pair you want to filter)
+TAG_FILTER='{"Key":"Environment","Values":["Dev"]}'
+
+# Fetch the existing budget
+EXISTING_BUDGET=$(aws budgets describe-budgets --query "Budgets[?BudgetName=='${BUDGET_NAME}'] | [0]")
+
+# Check if budget exists
+if [ -z "$EXISTING_BUDGET" ]; then
+  echo "Budget does not exist."
+  exit 1
+fi
+
+# Add or update the filter part to include new service and tag filter
+UPDATED_BUDGET=$(echo "$EXISTING_BUDGET" | jq --argjson add_service "$SERVICE_FILTER" --argjson add_tag "$TAG_FILTER" '.BudgetLimit = .BudgetLimit + {} | .CostFilters += {($add_service.Key): $add_service.Values, ($add_tag.Key): $add_tag.Values}')
+
+# Modify the existing budget
+aws budgets modify-budget --account-id your-account-id --budget "$UPDATED_BUDGET"
+
+echo "Budget updated."

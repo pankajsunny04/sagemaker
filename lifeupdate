@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Step 1: Create or update the lifecycle script
+echo '#!/bin/bash
+pip install numpy pandas' > lifecycle-script.sh
+
+# Step 2: Convert the script to a base64 string
+base64_script=$(base64 -w0 lifecycle-script.sh)
+
+# Step 3: Update the lifecycle configuration using AWS CLI
+aws sagemaker update-studio-lifecycle-config \
+    --studio-lifecycle-config-name "MyLifecycleConfig" \
+    --studio-lifecycle-config-content "$base64_script"

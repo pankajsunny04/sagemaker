@@ -1,0 +1,24 @@
+variable "email_list" {
+  description = "Comma-separated list of emails"
+  type        = string
+  default     = "email1@example.com,email2@example.com,email3@example.com"
+}
+
+
+
+
+locals {
+  emails = split(",", var.email_list)
+}
+
+resource "aws_sns_topic" "example" {
+  name = "example"
+}
+
+resource "aws_sns_topic_subscription" "example_subscription" {
+  count = length(local.emails)
+  
+  topic_arn = aws_sns_topic.example.arn
+  protocol  = "email"
+  endpoint  = local.emails[count.index]
+}

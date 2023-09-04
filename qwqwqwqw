@@ -1,0 +1,21 @@
+locals {
+  email_list = ["email1@example.com", "email2@example.com", "email3@example.com"]
+}
+
+resource "aws_budgets_budget" "example" {
+  # ... other configurations ...
+
+  notification {
+    # ... other configurations ...
+    
+    dynamic "subscriber" {
+      for_each = local.email_list
+      content {
+        address = subscriber.value
+        event_threshold {
+          # ... other configurations ...
+        }
+      }
+    }
+  }
+}

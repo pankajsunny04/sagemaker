@@ -1,0 +1,15 @@
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_s3_bucket" "my_bucket" {
+  bucket = "my-unique-bucket-name"
+  acl    = "private"
+}
+
+resource "aws_s3_bucket_object" "my_object" {
+  bucket = aws_s3_bucket.my_bucket.id
+  key    = "path/in/bucket/my-archive.zip"
+  source = "${path.module}/path/in/module/my-archive.zip"
+  etag   = filemd5("${path.module}/path/in/module/my-archive.zip")
+}

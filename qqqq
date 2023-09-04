@@ -1,0 +1,21 @@
+locals {
+  first_two_digits  = random_integer.rnd1.result
+  third_char        = random_string.rnd2.result
+}
+
+resource "random_integer" "rnd1" {
+  min = 10
+  max = 99
+}
+
+resource "random_string" "rnd2" {
+  length  = 1
+  special = false
+  upper   = false
+  lower   = true
+  number  = false
+}
+
+output "random_string" {
+  value = "${local.first_two_digits}${local.third_char}"
+}

@@ -1,0 +1,177 @@
+variable "postgres_engine_version" {
+  description = "The engine version of the RDS instance"
+  type        = string
+}
+
+
+resource "aws_db_parameter_group" "example" {
+  name        = "parameter-group-${var.postgres_engine_version}"
+  family      = "postgres${var.postgres_engine_version}"
+  description = "Database parameter group for ${var.postgres_engine_version}"
+
+  parameter {
+    name  = "example_parameter"
+    value = "example_value"
+  }
+
+  tags = {
+    Name = "example-db-parameter-group"
+  }
+}
+
+resource "aws_db_instance" "example" {
+  allocated_storage    = 20
+  storage_type         = "gp2"
+  engine               = "postgres"
+  engine_version       = var.postgres_engine_version
+  instance_class       = "db.t2.micro"
+  name                 = "mydb"
+  username             = "foo"
+  password             = "foobarbaz"
+  parameter_group_name = aws_db_parameter_group.example.name
+
+  ...
+}
+
+
+resource "aws_db_parameter_group" "default" {
+  name        = "parameter-group-${var.engine}-${var.engine_version}"
+  family      = "postgres${var.engine_version}"
+  description = "Database parameter group for ${var.engine}-${var.engine_version}"
+
+  parameter {
+    name         = "example_parameter_name"
+    value        = "example_parameter_value"
+  }
+}
+
+variable "engine" {
+  description = "The name of the database engine to be used for this DB instance."
+  default     = "postgres"
+}
+
+variable "engine_version" {
+  description = "The version of the database engine to use."
+  default     = "13.3"
+}
+
+
+
+
+
+variable "instance_type" {
+  description = "Type of instance to create: 'rds' or 'aurora'"
+}
+
+variable "allocated_storage" {
+  description = "The allocated storage in gibibytes. This is not used for Aurora."
+  default = 20
+}
+
+variable "engine" {
+  description = "The name of the database engine to be used for this DB instance."
+  default = "postgres"
+}
+
+variable "engine_version" {
+  description = "The engine version to use."
+  default = "13.3"
+}
+
+variable "instance_class" {
+  description = "The instance type of the RDS instance."
+  default = "db.t2.micro"
+}
+
+variable "cluster_identifier" {
+  description = "The cluster identifier. This is used for Aurora."
+  default = "my-aurora-cluster"
+}
+
+variable "identifier" {
+  description = "The name of the RDS instance."
+  default = "my-postgresql-instance"
+}
+
+variable "name" {
+  description = "The DB name to create. If omitted, no database is created initially."
+  default = "mydb"
+}
+
+variable "username" {
+  description = "Username for the master DB user."
+  default = "foo"
+}
+
+variable "password" {
+  description = "Password for the master DB user."
+  default = "foobar"
+}
+
+variable "subnet_group_name" {
+  description = "The DB subnet group name to use for shared subnets. This is used for Aurora."
+  default = ""
+}
+
+variable "vpc_security_group_ids" {
+  description = "List of VPC security groups to associate. This is used for Aurora."
+  type        = list(string)
+  default     = []
+}
+
+variable "availability_zones" {
+  description = "A list of Availability Zones. This is used for Aurora."
+  type        = list(string)
+  default     = []
+}
+
+locals {
+  is_aurora = var.instance_type == "aurora"
+}
+
+# Standard PostgreSQL instance
+resource "aws_db_instance" "postgresql" {
+  count                = local.is_aurora ? 0 : 1
+  allocated_storage    = var.allocated_storage
+  engine               = var.engine
+  engine_version       = var.engine_version
+  instance_class       = var.instance_class
+  identifier           = var.identifier
+  name                 = var.name
+  username             = var.username
+  password             = var.password
+  parameter_group_name = "default.${var.engine}${replace(var.engine_version, ".", "")}"
+}
+
+# Aurora PostgreSQL cluster
+resource "aws_rds_cluster" "aurora_postgresql" {
+  count                   = local.is_aurora ? 1 : 0
+  cluster_identifier      = var.cluster_identifier
+  engine                  = var.engine
+  engine_version          = var.engine_version
+  master_username         = var.username
+  master_password         = var.password
+  db_subnet_group_name    = var.subnet_group_name
+  vpc_security_group_ids  = var.vpc_security_group_ids
+  availability_zones      = var.availability_zones
+  skip_final_snapshot     = true
+}
+
+resource "aws_rds_cluster_instance" "aurora_postgresql_instance" {
+  count               = local.is_aurora ? 1 : 0
+  identifier          = "${var.cluster_identifier}-instance"
+  cluster_identifier  = aws_rds_cluster.aurora_postgresql[0].id
+  instance_class      = var.instance_class
+}
+
+output "postgres_endpoint" {
+  value = aws_db_instance.postgresql[0].endpoint
+  count = local.is_aurora ? 0 : 1
+}
+
+output "aurora_endpoint" {
+  value = aws_rds_cluster.aurora_postgresql[0].endpoint
+  count = local.is_aurora ? 1 : 0
+}
+
+

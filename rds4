@@ -1,0 +1,13 @@
+variable "subnet_ids" {
+  type = list(string)
+  default = ["subnet-0bb1c79de3EXAMPLE", "subnet-0bb1c79de3EXAMPLE"]
+}
+
+data "aws_subnet" "example" {
+  count = length(var.subnet_ids)
+  id    = var.subnet_ids[count.index]
+}
+
+output "vpc_ids" {
+  value = [for subnet in data.aws_subnet.example : subnet.vpc_id]
+}

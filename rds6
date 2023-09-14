@@ -8,3 +8,5 @@ replace(var.input, "/[^a-zA-Z]/", "")
 regex(".*?([0-9].*)", local.input_string)[0]
 
 replace(var.input, "/.*[^0-9]/", "")
+
+regex("([a-zA-Z]+)[0-9]+", var.input_string)

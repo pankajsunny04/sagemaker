@@ -1,0 +1,101 @@
+variable "is_aurora" {
+  description = "A boolean variable to determine if the RDS instance is Aurora or non-Aurora"
+  type        = bool
+}
+
+variable "instance_count" {
+  description = "The number of RDS instances to create"
+  type        = number
+  default     = 1
+}
+
+variable "instance_class" {
+  description = "The instance class of the RDS instance"
+  type        = string
+  default     = "db.t3.micro"
+}
+
+variable "allocated_storage" {
+  description = "The amount of storage to allocate for the RDS instance (non-Aurora)"
+  type        = number
+  default     = 20
+}
+
+
+
+
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_db_instance" "rds_non_aurora" {
+  count                       = var.is_aurora ? 0 : var.instance_count
+  allocated_storage           = var.allocated_storage
+  engine                      = "mysql"
+  instance_class              = var.instance_class
+  username                    = "admin"
+  password                    = "password"
+  parameter_group_name        = "default.mysql5.7"
+  publicly_accessible         = true
+  skip_final_snapshot         = true
+  multi_az                    = false
+  backup_retention_period     = 0
+  availability_zone           = "us-west-2a"
+  tags = {
+    Name = "Non-Aurora RDS Instance"
+  }
+}
+
+resource "aws_rds_cluster" "aurora_cluster" {
+  count                      = var.is_aurora ? 1 : 0
+  cluster_identifier         = "aurora-cluster"
+  engine                     = "aurora-mysql"
+  master_username            = "admin"
+  master_password            = "password"
+  db_subnet_group_name       = aws_db_subnet_group.default.name
+  vpc_security_group_ids     = [aws_security_group.default.id]
+  availability_zones         = ["us-west-2a", "us-west-2b"]
+  database_name              = "mydb"
+  skip_final_snapshot        = true
+}
+
+resource "aws_rds_cluster_instance" "aurora_instances" {
+  count                      = var.is_aurora ? var.instance_count : 0
+  identifier                 = "aurora-instance-${count.index}"
+  cluster_identifier         = aws_rds_cluster.aurora_cluster[0].id
+  instance_class             = var.instance_class
+  publicly_accessible        = true
+  db_subnet_group_name       = aws_db_subnet_group.default.name
+  availability_zone          = "us-west-2a"
+  engine                     = "aurora-mysql"
+  monitoring_interval        = 5
+}
+
+resource "aws_db_subnet_group" "default" {
+  name       = "default"
+  subnet_ids = ["subnet-abcdef12", "subnet-ghijkl34"]
+}
+
+resource "aws_security_group" "default" {
+  name        = "default"
+  description = "default vpc security group"
+  vpc_id      = "vpc-abcdef12"
+}
+
+
+
+output "rds_non_aurora_endpoints" {
+  value       = aws_db_instance.rds_non_aurora.*.endpoint
+  description = "The connection endpoints of the non-Aurora RDS instances"
+}
+
+output "aurora_endpoints" {
+  value       = aws_rds_cluster_instance.aurora_instances.*.endpoint
+  description = "The connection endpoints of the Aurora RDS instances"
+}
+
+
+
+is_aurora        = true
+instance_count   = 2
+instance_class   = "db.r5.large"

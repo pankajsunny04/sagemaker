@@ -1,0 +1,19 @@
+resource "null_resource" "example" {
+  provisioner "local-exec" {
+    command = "echo ${var.value} | awk -F. '{print $1}' > output.txt"
+  }
+}
+
+output "result" {
+  value = file("${path.module}/output.txt")
+}
+
+
+variable "value" {
+  description = "The input value"
+  default = "123.456"
+}
+
+output "whole_number_sum" {
+  value = tonumber(regex("([0-9]+)\\..*", var.value)) + 1
+}

@@ -11,3 +11,6 @@ data "aws_subnet" "example" {
 output "vpc_ids" {
   value = [for subnet in data.aws_subnet.example : subnet.vpc_id]
 }
+output "number_before_dot" {
+  value = element(split(".", var.my_input), 0)
+}

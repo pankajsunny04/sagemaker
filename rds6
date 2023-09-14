@@ -1,0 +1,1 @@
+join(".", slice(split(".", var.input), 0, length(split(".", var.input)) - 1))

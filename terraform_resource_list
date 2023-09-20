@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# File where the CSV will be stored
+OUTPUT_FILE="terraform_resources.csv"
+
+# Write CSV header
+echo "Resource Type,Resource Name" > $OUTPUT_FILE
+
+# Iterate over resources in Terraform state
+terraform state list | while read -r resource; do
+    # Extract resource type and name
+    resource_type=$(echo $resource | cut -d'.' -f1)
+    resource_name=$(echo $resource | cut -d'.' -f2)
+
+    # Append to the CSV file
+    echo "$resource_type,$resource_name" >> $OUTPUT_FILE
+done
+
+echo "Resources exported to $OUTPUT_FILE"

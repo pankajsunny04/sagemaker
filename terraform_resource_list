@@ -1,9 +1,17 @@
 #!/bin/bash
 
-# Ensure terraform is initialized
-terraform init
+# Ensure the script fails on any error
+set -e
 
-# Output terraform state in JSON and process it using jq to generate CSV
-terraform show -json | jq -r '.values.root_module.resources[] | [.address, .type] | @csv' > output.csv
+# Header
+echo "Type,Name" > resources.csv
 
-echo "Resources exported to output.csv"
+# Loop through all resources in the Terraform state
+terraform state list | while read -r resource; do
+    # Extract type and name
+    resource_type=$(echo "$resource" | cut -d'.' -f1)
+    resource_name=$(echo "$resource" | cut -d'.' -f2)
+    echo "$resource_type,$resource_name" >> resources.csv
+done
+
+echo "Resources have been exported to resources.csv"

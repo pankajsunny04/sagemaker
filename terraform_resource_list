@@ -1,11 +1,12 @@
 #!/bin/bash
 
-OUTPUT_FILE="resources.csv"
+# File to store the CSV output
+output_file="resources.csv"
 
-# Write header to CSV
-echo "Name,Type" > $OUTPUT_FILE
+# Write CSV headers
+echo "Resource Name,Resource Type" > $output_file
 
-# Parse Terraform state and append to CSV
-terraform show -json | jq -r '.values.root_module.resources[] | select(.type | startswith("aws_")) | [.name, .type] | @csv' >> $OUTPUT_FILE
+# Extract resources from Terraform state
+terraform state list -json | jq -r '.[] | "\(.address),\(.type)"' >> $output_file
 
-echo "Resources exported to $OUTPUT_FILE"
+echo "Resources exported to $output_file"

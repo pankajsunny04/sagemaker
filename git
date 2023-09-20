@@ -1,0 +1,59 @@
+variable "domain_name" {
+  description = "Name for the SageMaker domain"
+  type        = string
+}
+
+variable "git_config" {
+  description = "List of Git configurations to associate with SageMaker"
+  type        = list(object({
+    repository_url    = string
+    secret_arn        = string? # Optional, for private repositories
+    branch            = string? # Optional, default branch
+    repository_name   = string  # SageMaker friendly name for the repository
+  }))
+}
+
+resource "aws_sagemaker_domain" "this" {
+  domain_name = var.domain_name
+  # ... other configurations ...
+
+  default_user_settings {
+    # ... other configurations ...
+
+    git_config {
+      dynamic "item" {
+        for_each = var.git_config
+        content {
+          repository_url    = item.value["repository_url"]
+          secret_arn        = lookup(item.value, "secret_arn", null)
+          branch            = lookup(item.value, "branch", null)
+          repository_name   = item.value["repository_name"]
+        }
+      }
+    }
+  }
+}
+
+
+
+
+
+
+module "sagemaker_domain_with_repos" {
+  source     = "./sagemaker_with_repos"
+  domain_name = "my-sagemaker-domain"
+
+  git_config = [
+    {
+      repository_url  = "https://github.com/example/repo1.git"
+      repository_name = "Repo1"
+    },
+    {
+      repository_url  = "https://github.com/example/repo2.git"
+      secret_arn      = "arn:aws:secretsmanager:region:account-id:secret:secret-name"
+      repository_name = "Repo2"
+    }
+    # ... Add more repositories if needed ...
+  ]
+}
+

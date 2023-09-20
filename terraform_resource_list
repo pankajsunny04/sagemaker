@@ -17,3 +17,14 @@ terraform state list | while read -r resource; do
 done
 
 echo "Resources exported to $OUTPUT_FILE"
+
+
+
+
+#!/bin/bash
+
+# Output the header of the CSV
+echo "Name,Type" > resources.csv
+
+# Extract the resource details from Terraform and append it to the CSV
+terraform show -json | jq -r '.values.root_module.resources[] | [.address, .type] | @csv' >> resources.csv

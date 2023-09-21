@@ -1,0 +1,14 @@
+provider "aws" {
+  region = "us-west-2" # Change this to your desired AWS region
+}
+
+data "aws_security_group" "selected" {
+  filter {
+    name   = "group-name"
+    values = ["my-security-group-name"] # Replace this with your security group name
+  }
+}
+
+output "security_group_id" {
+  value = data.aws_security_group.selected.id
+}

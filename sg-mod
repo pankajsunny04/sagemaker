@@ -1,32 +1,68 @@
-resource "aws_security_group" "this" {
-  name        = "my-security-group"
-  description = "My Security Group with dynamic ingress rules"
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_security_group" "example" {
+  name        = "example"
+  description = "Example security group"
 
   dynamic "ingress" {
     for_each = var.cidr_blocks
     content {
-      from_port   = 0  # You can customize these as per your needs
-      to_port     = 65535
-      protocol    = "tcp" 
-      cidr_blocks = [ingress.value]
+      from_port   = ingress.value["from_port"]
+      to_port     = ingress.value["to_port"]
+      protocol    = ingress.value["protocol"]
+      cidr_blocks = [ingress.value["cidr"]]
     }
   }
 
   dynamic "ingress" {
     for_each = var.security_groups
     content {
-      from_port        = 0  # You can customize these as per your needs
-      to_port          = 65535
-      protocol         = "tcp"
-      security_groups  = [ingress.value]
+      from_port        = ingress.value["from_port"]
+      to_port          = ingress.value["to_port"]
+      protocol         = ingress.value["protocol"]
+      security_groups  = [ingress.value["security_group_id"]]
     }
   }
 
   ingress {
-    count       = var.self_ingress ? 1 : 0
-    from_port   = 0
-    to_port     = 65535
+    from_port   = var.self_port
+    to_port     = var.self_port
     protocol    = "tcp"
     self        = true
   }
+
+  tags = {
+    Name = "example"
+  }
+}
+
+variable "cidr_blocks" {
+  description = "List of CIDR blocks and associated rule attributes for ingress"
+  default = [
+    {
+      from_port   = 22,
+      to_port     = 22,
+      protocol    = "tcp",
+      cidr        = "0.0.0.0/0"
+    }
+  ]
+}
+
+variable "security_groups" {
+  description = "List of security group IDs and associated rule attributes for ingress"
+  default = [
+    {
+      from_port          = 80,
+      to_port            = 80,
+      protocol           = "tcp",
+      security_group_id  = "sg-0123456789abcdef0"
+    }
+  ]
+}
+
+variable "self_port" {
+  description = "Port number to allow ingress from the security group itself"
+  default     = 443
 }

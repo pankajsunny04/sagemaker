@@ -1,0 +1,32 @@
+resource "aws_security_group" "this" {
+  name        = "my-security-group"
+  description = "My Security Group with dynamic ingress rules"
+
+  dynamic "ingress" {
+    for_each = var.cidr_blocks
+    content {
+      from_port   = 0  # You can customize these as per your needs
+      to_port     = 65535
+      protocol    = "tcp" 
+      cidr_blocks = [ingress.value]
+    }
+  }
+
+  dynamic "ingress" {
+    for_each = var.security_groups
+    content {
+      from_port        = 0  # You can customize these as per your needs
+      to_port          = 65535
+      protocol         = "tcp"
+      security_groups  = [ingress.value]
+    }
+  }
+
+  ingress {
+    count       = var.self_ingress ? 1 : 0
+    from_port   = 0
+    to_port     = 65535
+    protocol    = "tcp"
+    self        = true
+  }
+}

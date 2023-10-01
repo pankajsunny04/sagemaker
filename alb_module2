@@ -1,0 +1,240 @@
+module "aws_alb" {
+  source = "./modules/aws_alb"
+  
+  name              = "my-alb"
+  internal          = false
+  subnets           = ["subnet-12345678", "subnet-87654321"]
+  security_groups   = ["sg-12345678"]
+  target_types      = ["autoscaling", "instance", "ip", "lambda"]
+  
+  autoscaling_targets = {
+    asg_name = "my-asg"
+    port     = 80
+  }
+  
+  instance_targets = [
+    {
+      instance_id = "i-12345678"
+      port       = 8080
+    },
+    {
+      instance_id = "i-87654321"
+      port       = 8080
+    }
+  ]
+  
+  ip_targets = ["10.0.0.1", "10.0.0.2"]
+  
+  lambda_targets = {
+    function_name = "my-lambda-function"
+    port          = 8080
+  }
+  
+  https_listener = {
+    port              = 443
+    certificate_arn   = "arn:aws:acm:us-east-1:123456789012:certificate/your-cert-arn"
+    default_action    = "fixed-response"
+    fixed_response    = {
+      content_type = "text/plain"
+      status_code  = "200"
+      content_body = "OK"
+    }
+  }
+}
+
+
+
+
+resource "aws_lb" "alb" {
+  name               = var.name
+  internal           = var.internal
+  load_balancer_type = "application"
+  subnets            = var.subnets
+  security_groups    = var.security_groups
+
+  enable_deletion_protection = false
+}
+
+resource "aws_lb_target_group" "autoscaling" {
+  name        = "${var.name}-asg"
+  port        = var.autoscaling_targets["port"]
+  protocol    = "HTTP"
+  target_type = "instance"
+
+  vpc_id     = aws_lb.alb.vpc_id
+  depends_on = [aws_lb.alb]
+}
+
+resource "aws_lb_target_group" "instance" {
+  count       = length(var.instance_targets)
+  name        = "${var.name}-instance-${count.index}"
+  port        = var.instance_targets[count.index]["port"]
+  protocol    = "HTTP"
+  target_type = "instance"
+
+  vpc_id     = aws_lb.alb.vpc_id
+  depends_on = [aws_lb.alb]
+}
+
+resource "aws_lb_target_group" "ip" {
+  count       = length(var.ip_targets)
+  name        = "${var.name}-ip-${count.index}"
+  port        = 80
+  protocol    = "HTTP"
+  target_type = "ip"
+
+  vpc_id     = aws_lb.alb.vpc_id
+  depends_on = [aws_lb.alb]
+}
+
+resource "aws_lb_target_group" "lambda" {
+  name        = "${var.name}-lambda"
+  port        = var.lambda_targets["port"]
+  protocol    = "HTTP"
+  target_type = "lambda"
+
+  vpc_id     = aws_lb.alb.vpc_id
+  depends_on = [aws_lb.alb]
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.alb.arn
+  port              = var.https_listener["port"]
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = var.https_listener["certificate_arn"]
+
+  default_action {
+    type             = var.https_listener["default_action"]
+    fixed_response {
+      content_type = var.https_listener["fixed_response"]["content_type"]
+      status_code  = var.https_listener["fixed_response"]["status_code"]
+      content_body = var.https_listener["fixed_response"]["content_body"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "autoscaling" {
+  count = contains(var.target_types, "autoscaling") ? 1 : 0
+
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.autoscaling.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/asg/*"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "instance" {
+  count = contains(var.target_types, "instance") ? length(var.instance_targets) : 0
+
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 200 + count.index
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.instance[count.index].arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/instance/*"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "ip" {
+  count = contains(var.target_types, "ip") ? length(var.ip_targets) : 0
+
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 300 + count.index
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.ip[count.index].arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/ip/*"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "lambda" {
+  count = contains(var.target_types, "lambda") ? 1 : 0
+
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 400
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.lambda.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/lambda/*"]
+    }
+  }
+}
+
+variable "name" {
+  description = "The name for the Application Load Balancer."
+  type        = string
+}
+
+variable "internal" {
+  description = "If true, the ALB will be internal."
+  type        = bool
+}
+
+variable "subnets" {
+  description = "A list of subnet IDs to attach to the ALB."
+  type        = list(string)
+}
+
+variable "security_groups" {
+  description = "A list of security group IDs for the ALB."
+  type        = list(string)
+}
+
+variable "target_types" {
+  description = "A list of target types (e.g., autoscaling, instance, ip, lambda)."
+  type        = list(string)
+}
+
+variable "autoscaling_targets" {
+  description = "A map of Auto Scaling Group settings (e.g., asg_name, port)."
+  type        = map(string)
+}
+
+variable "instance_targets" {
+  description = "A list of instance target settings (e.g., instance_id, port)."
+  type        = list(map(string))
+}
+
+variable "ip_targets" {
+  description = "A list of IP targets."
+  type        = list(string)
+}
+
+variable "lambda_targets" {
+  description = "A map of Lambda function settings (e.g., function_name, port)."
+  type        = map(string)
+}
+
+variable "https_listener" {
+  description = "HTTPS listener settings (e.g., port, certificate_arn, default_action)."
+  type        = map(string)
+}
+
+
+

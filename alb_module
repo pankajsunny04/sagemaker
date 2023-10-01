@@ -1,0 +1,208 @@
+variable "target_type" {
+  description = "Type of target: autoscaling, instance, ip, or lambda"
+  type        = string
+}
+
+variable "target_arns" {
+  description = "List of target ARNs based on target type"
+  type        = list(string)
+}
+
+variable "listener_arn" {
+  description = "ARN of the listener to attach targets to"
+  type        = string
+}
+
+
+
+
+
+resource "aws_lb" "example" {
+  name               = "example-alb"
+  internal           = false
+  load_balancer_type = "application"
+  subnets            = ["subnet-12345678", "subnet-23456789"]
+}
+
+resource "aws_lb_listener" "example" {
+  load_balancer_arn = aws_lb.example.arn
+  port              = 80
+  protocol          = "HTTP"
+  default_action {
+    type             = "fixed-response"
+    fixed_response {
+      content_type = "text/plain"
+      status_code  = "200"
+      content      = "OK"
+    }
+  }
+}
+
+resource "aws_lb_target_group" "example" {
+  name     = "example-target-group"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "vpc-01234567"
+}
+
+resource "aws_lb_listener_rule" "example" {
+  listener_arn = var.listener_arn
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.example.arn
+  }
+
+  dynamic "condition" {
+    for_each = var.target_arns
+    content {
+      field  = "path-pattern"
+      values = ["/"]
+      host_header {
+        values = ["example.com"]
+      }
+      path_pattern {
+        values = ["/"]
+      }
+      priority = 1
+      action {
+        type             = "forward"
+        target_group_arn = condition.value
+      }
+    }
+  }
+}
+
+# Attach targets based on target_type
+resource "aws_lb_target_group_attachment" "example" {
+  count            = length(var.target_arns)
+  target_group_arn = aws_lb_target_group.example.arn
+  target_id        = var.target_arns[count.index]
+}
+
+
+
+
+variable "target_type" {
+  description = "Type of target: autoscaling, instance, ip, or lambda"
+  type        = string
+}
+
+variable "target_arns" {
+  description = "List of target ARNs based on target type"
+  type        = list(string)
+}
+
+variable "listener_arn" {
+  description = "ARN of the listener to attach targets to"
+  type        = string
+}
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+my_alb_module/
+├── main.tf
+├── variables.tf
+├── outputs.tf
+├── alb.tf
+└── ssl.tf
+
+
+
+
+variable "alb_name" {
+  description = "Name for the Application Load Balancer"
+}
+
+variable "listener_port" {
+  description = "Listener port for the ALB"
+}
+
+variable "ssl_certificate_arn" {
+  description = "SSL certificate ARN for HTTPS listener"
+}
+
+variable "target_type" {
+  description = "Type of target (autoscaling, instance, ip, or lambda)"
+}
+
+variable "targets" {
+  description = "List of target identifiers (e.g., ASG name, instance IDs, IP addresses, Lambda ARNs)"
+  type        = list(string)
+}
+
+
+resource "aws_lb" "my_alb" {
+  name               = var.alb_name
+  internal           = false
+  load_balancer_type = "application"
+  subnets            = [var.subnet_ids]
+}
+
+resource "aws_lb_listener" "https_listener" {
+  load_balancer_arn = aws_lb.my_alb.arn
+  port              = var.listener_port
+  protocol          = "HTTPS"
+
+  ssl_policy      = "ELBSecurityPolicy-2016-08"
+  certificate_arn = var.ssl_certificate_arn
+}
+
+resource "aws_lb_target_group" "my_target_group" {
+  name     = "my-target-group"
+  port     = var.listener_port
+  protocol = "HTTP"
+}
+
+resource "aws_lb_listener_rule" "target_rule" {
+  listener_arn = aws_lb_listener.https_listener.arn
+  action {
+    type             = "fixed-response"
+    fixed_response {
+      content_type = "text/plain"
+      status_code  = "200"
+      content      = "OK"
+    }
+  }
+
+  dynamic "condition" {
+    for_each = var.targets
+    content {
+      field  = "path-pattern"
+      values = ["/${condition.value}/*"]
+    }
+  }
+}
+
+
+
+resource "aws_acm_certificate" "ssl_cert" {
+  domain_name       = "example.com" # Change this to your domain name
+  validation_method = "DNS"
+}
+
+
+
+
+output "alb_dns_name" {
+  description = "DNS name of the Application Load Balancer"
+  value       = aws_lb.my_alb.dns_name
+}
+
+
+
+
+module "my_alb" {
+  source               = "./my_alb_module"
+  alb_name             = "my-alb"
+  listener_port        = 443
+  ssl_certificate_arn  = aws_acm_certificate.ssl_cert.arn
+  target_type          = "autoscaling"
+  targets              = ["my-auto-scaling-group-name"]
+}
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+

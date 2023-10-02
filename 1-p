@@ -15,3 +15,17 @@ locals {
 output "final_result" {
   value = local.final_result
 }
+
+
+variable "region" {
+  default = "us-east-1"
+}
+
+locals {
+  shortened_region = join("", [element(split("-", var.region), 0)] +
+                    [join("", [substring(e, 0, 1) for e in split("-", var.region)[1:]])])
+}
+
+output "shortened_region" {
+  value = local.shortened_region
+}

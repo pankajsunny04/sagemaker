@@ -1,0 +1,17 @@
+element(split(".", var.input_string), 0)
+
+
+
+variable "input_string" {
+  type    = string
+  default = "abc-bcc15.3"
+}
+
+locals {
+  split_result = split(".", var.input_string)[0]
+  final_result = replace("-", "", local.split_result)
+}
+
+output "final_result" {
+  value = local.final_result
+}

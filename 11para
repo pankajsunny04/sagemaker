@@ -10,3 +10,41 @@ variable "default_variable" {
 resource "example_resource" "example" {
   name = var.provided_variable != null ? var.provided_variable : var.default_variable
 }
+
+
+
+
+
+
+
+
+
+variable "variable_with_value" {
+  type    = string
+  default = ""  # Set a default value if the variable is not provided
+}
+
+variable "default_value" {
+  type    = string
+  default = "fallback_value"  # Set a default value to use if variable_with_value is empty
+}
+
+# Use conditional expression to choose the value based on variable_with_value
+variable "final_value" {
+  type = string
+
+  # If variable_with_value is not empty, use its value. Otherwise, use default_value.
+  default = var.variable_with_value != "" ? var.variable_with_value : var.default_value
+}
+
+
+
+
+variable "my_variable" {}
+variable "default_value" {
+  default = "Default Value"
+}
+
+output "result" {
+  value = var.my_variable != "" ? var.my_variable : var.default_value
+}

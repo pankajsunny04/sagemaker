@@ -13,6 +13,21 @@ resource "example_resource" "example" {
 
 
 
+variable "my_variable" {
+  type    = string
+  # Default value if my_variable is not provided
+  default = "default_value"
+}
+
+# Use a different value if my_variable is defined
+locals {
+  conditional_variable = var.my_variable != "" ? var.my_variable : "alternative_value"
+}
+
+# Use the conditional_variable in your resource configuration
+resource "example_resource" "example" {
+  name = local.conditional_variable
+}
 
 
 

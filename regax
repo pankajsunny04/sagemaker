@@ -1,18 +1,1 @@
-variable "input_string" {
-  default = "synftte"
-}
-
-# Calculate the length of the string
-locals {
-  string_length = length(var.input_string)
-}
-
-# Loop through each character of the string and capitalize it
-locals {
-  transformed_string = join("", [upper(substr(var.input_string, count.index, 1)) for count in range(local.string_length)])
-}
-
-# Usage of the transformed string
-output "transformed_string" {
-  value = local.transformed_string
-}
+"${upper(substr(var.original_value, 1, 1))}${substr(var.original_value, 2, length(var.original_value)-1)}"

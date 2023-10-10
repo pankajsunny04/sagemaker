@@ -1,0 +1,81 @@
+my_alb_module/
+  ├── main.tf
+  ├── variables.tf
+  └── outputs.tf
+
+
+
+variable "name" {
+  description = "Name for the Application Load Balancer"
+}
+
+variable "subnets" {
+  type        = list(string)
+  description = "List of subnet IDs for the ALB"
+}
+
+variable "enable_deletion_protection" {
+  type        = bool
+  description = "Enable deletion protection for the ALB"
+  default     = false
+}
+
+variable "enable_http2" {
+  type        = bool
+  description = "Enable HTTP/2 for the ALB"
+  default     = true
+}
+
+variable "enable_cross_zone_load_balancing" {
+  type        = bool
+  description = "Enable cross-zone load balancing"
+  default     = true
+}
+
+# Add more variables as needed for your specific requirements
+
+
+
+
+
+resource "aws_lb" "my_alb" {
+  name               = var.name
+  subnets            = var.subnets
+  enable_deletion_protection = var.enable_deletion_protection
+  enable_http2       = var.enable_http2
+  enable_cross_zone_load_balancing = var.enable_cross_zone_load_balancing
+
+  # You can add more ALB configurations here
+}
+
+# Define other resources like target groups, listeners, etc. as needed
+
+
+
+
+output "alb_dns_name" {
+  value       = aws_lb.my_alb.dns_name
+  description = "DNS name of the Application Load Balancer"
+}
+
+# Add more outputs as needed
+
+
+
+
+
+module "my_alb" {
+  source           = "./my_alb_module"
+  name             = "my-alb"
+  subnets           = ["subnet-1", "subnet-2"]
+  enable_deletion_protection = false
+  enable_http2      = true
+  enable_cross_zone_load_balancing = true
+  # Add more variable values as needed
+}
+
+# You can now use module.my_alb outputs in your main configuration
+output "alb_dns_name" {
+  value       = module.my_alb.alb_dns_name
+  description = "DNS name of the Application Load Balancer"
+}

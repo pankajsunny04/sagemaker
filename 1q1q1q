@@ -1,0 +1,13 @@
+locals {
+  input_value = "synftte"
+}
+
+resource "null_resource" "example" {
+  triggers = {
+    converted_value = local.input_value != "" ? upper(substr(local.input_value, 1, 1)) ~ lower(substr(local.input_value, 2)) : ""
+  }
+}
+
+output "converted_value" {
+  value = null_resource.example.triggers.converted_value
+}

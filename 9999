@@ -1,0 +1,11 @@
+variable "input_string" {
+  default = "synftte"
+}
+
+locals {
+  modified_string = "${substr(var.input_string, 0, 3)}${upper(substr(var.input_string, 3, 1))}${substr(var.input_string, 4, 3)}"
+}
+
+output "modified_string" {
+  value = local.modified_string
+}

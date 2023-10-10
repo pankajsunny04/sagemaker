@@ -1,32 +1,18 @@
 variable "input_string" {
-  type    = string
-  default = "hello world"
-}
-
-locals {
-  upper_first_letter = upper(substr(var.input_string, 0, 1))  # Extract the first character and make it uppercase
-  rest_of_string    = substr(var.input_string, 1)            # Get the rest of the string
-  result_string     = "${local.upper_first_letter}${local.rest_of_string}"
-}
-
-output "result" {
-  value = local.result_string
-}
-
-
-
-variable "input_string" {
-  type    = string
   default = "synftte"
 }
 
+# Calculate the length of the string
 locals {
-  first_letter       = substr(var.input_string, 0, 1)          # Extract the first character
-  first_three_letters = substr(var.input_string, 0, 3)        # Extract the first three characters
-  rest_of_string     = substr(var.input_string, 3)            # Get the rest of the string starting from the fourth character
-  result_string      = "${first_letter}${first_three_letters}${upper(rest_of_string)}"
+  string_length = length(var.input_string)
 }
 
-output "result" {
-  value = local.result_string
+# Loop through each character of the string and capitalize it
+locals {
+  transformed_string = join("", [upper(substr(var.input_string, count.index, 1)) for count in range(local.string_length)])
+}
+
+# Usage of the transformed string
+output "transformed_string" {
+  value = local.transformed_string
 }

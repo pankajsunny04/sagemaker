@@ -1,0 +1,115 @@
+project/
+├── main.tf
+├── variables.tf
+├── outputs.tf
+└── terraform.tfvars
+
+
+
+provider "aws" {
+  region = var.aws_region
+}
+
+resource "aws_network_lb" "example" {
+  name               = var.nlb_name
+  internal           = var.nlb_internal
+  load_balancer_type = var.nlb_type
+  enable_deletion_protection = var.nlb_deletion_protection
+  subnets            = var.nlb_subnets
+  enable_cross_zone_load_balancing = var.nlb_cross_zone_load_balancing
+
+  enable_http2             = var.nlb_http2
+  enable_proxy_protocol    = var.nlb_proxy_protocol
+  idle_timeout             = var.nlb_idle_timeout
+  enable_deletion_protection = var.nlb_deletion_protection
+
+  tags = var.nlb_tags
+}
+
+resource "aws_network_lb_listener" "http" {
+  load_balancer_arn = aws_network_lb.example.arn
+  port              = var.listener_port
+  protocol          = "TCP"
+
+  default_action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      status_code  = "200"
+      content      = "OK"
+    }
+  }
+}
+
+resource "aws_network_lb_target_group" "example" {
+  name     = var.target_group_name
+  port     = var.target_group_port
+  protocol = var.target_group_protocol
+  vpc_id   = var.target_group_vpc_id
+
+  health_check {
+    path                = var.health_check_path
+    port                = var.health_check_port
+    protocol            = var.health_check_protocol
+    interval            = var.health_check_interval
+    timeout             = var.health_check_timeout
+    healthy_threshold   = var.health_check_healthy_threshold
+    unhealthy_threshold = var.health_check_unhealthy_threshold
+  }
+
+  stickiness {
+    type = var.stickiness_type
+    enabled = var.stickiness_enabled
+    cookie_duration = var.stickiness_cookie_duration
+  }
+}
+
+resource "aws_network_lb_listener_rule" "example" {
+  listener_arn = aws_network_lb_listener.http.arn
+  action {
+    type             = "forward"
+    target_group_arn = aws_network_lb_target_group.example.arn
+  }
+
+  condition {
+    host_header {
+      values = [var.host_header]
+    }
+  }
+}
+
+
+
+
+
+variable "aws_region" {
+  description = "AWS region for the NLB"
+}
+
+variable "nlb_name" {
+  description = "Name for the Network Load Balancer"
+}
+
+# Define other variables here for NLB configuration
+# ...
+
+
+
+
+output "nlb_dns_name" {
+  value = aws_network_lb.example.dns_name
+}
+
+# Define other outputs as needed
+# ...
+
+
+
+
+
+aws_region = "us-east-1"
+nlb_name = "example-nlb"
+
+# Set values for other variables here
+# ...

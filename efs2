@@ -1,0 +1,36 @@
+resource "aws_efs_file_system" "example" {
+  creation_token = "my-efs"
+  performance_mode = "generalPurpose"
+  throughput_mode = "bursting"
+  encrypted = true
+  lifecycle_policy {
+    transition_to_ia = "AFTER_7_DAYS"
+  }
+}
+
+resource "aws_efs_file_system_tags" "example" {
+  count = length(var.efs_tags)
+
+  efs_file_system_id = aws_efs_file_system.example.id
+  key               = var.efs_tags[count.index].key
+  value             = var.efs_tags[count.index].value
+}
+
+variable "efs_tags" {
+  type = list(object({
+    key   = string
+    value = string
+  }))
+}
+
+# Example variable definition
+variable "efs_tags" {
+  type = list(object({
+    key   = string
+    value = string
+  }))
+  default = [
+    { key = "Environment", value = "Development" },
+    { key = "Name", value = "MyEFS" },
+  ]
+}

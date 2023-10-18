@@ -17,3 +17,24 @@ resource "aws_efs_file_system" "example" {
     transition_to_ia = var.transition_to_ia
   }
 }
+
+
+
+variable "transition_to_ia" {
+  description = "Transition policy for EFS storage"
+  type        = string
+  default     = "none"
+  
+  validation {
+    condition     = can(regex("^(none|AFTER_7_DAYS|AFTER_14_DAYS|AFTER_30_DAYS|AFTER_60_DAYS|AFTER_90_DAYS)$", var.transition_to_ia))
+    error_message = "Invalid transition_to_ia value. Must be one of 'none', 'AFTER_7_DAYS', 'AFTER_14_DAYS', 'AFTER_30_DAYS', 'AFTER_60_DAYS', or 'AFTER_90_DAYS'."
+  }
+}
+
+resource "aws_efs_file_system" "example" {
+  # other EFS configuration settings
+  
+  lifecycle_policy {
+    transition_to_ia = var.transition_to_ia
+  }
+}

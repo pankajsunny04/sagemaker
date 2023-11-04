@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create an Amazon Redshift Cluster with optional snapshot restore
+
+Parameters:
+  ClusterIdentifier:
+    Description: The unique identifier for the Redshift cluster.
+    Type: String
+  NodeType:
+    Description: The type of Redshift node.
+    Type: String
+  MasterUsername:
+    Description: The master username for the Redshift cluster.
+    Type: String
+  MasterUserPassword:
+    Description: The master user password for the Redshift cluster.
+    Type: String
+  SnapshotIdentifier:
+    Description: (Optional) The identifier of the snapshot to restore from.
+    Type: String
+    Default: ''
+  ClusterType:
+    Description: The type of Redshift cluster (e.g., multi-node).
+    Type: String
+  VpcId:
+    Description: The VPC where the Redshift cluster will be deployed.
+    Type: String
+  SubnetGroup:
+    Description: The name of the subnet group.
+    Type: String
+
+Resources:
+  RedshiftCluster:
+    Type: "AWS::Redshift::Cluster"
+    Properties:
+      ClusterIdentifier: !Ref ClusterIdentifier
+      NodeType: !Ref NodeType
+      MasterUsername: !Ref MasterUsername
+      MasterUserPassword: !Ref MasterUserPassword
+      ClusterType: !Ref ClusterType
+      VpcId: !Ref VpcId
+      ClusterSubnetGroupName: !Ref SubnetGroup
+      AvailabilityZone: "us-west-2a"  # Change to your preferred AZ
+      Port: 5439
+      PubliclyAccessible: false
+      SnapshotClusterIdentifier: !If [RestoreFromSnapshot, !Ref SnapshotIdentifier, !Ref "AWS::NoValue"]
+      # Add other cluster configuration properties as needed
+
+Conditions:
+  RestoreFromSnapshot: !Not [!Equals [!Ref SnapshotIdentifier, ""]]
+
+Outputs:
+  RedshiftClusterEndpoint:
+    Description: The endpoint for the Redshift cluster.
+    Value: !GetAtt RedshiftCluster.Endpoint.Address
+  RedshiftClusterPort:
+    Description: The port for the Redshift cluster.
+    Value: !GetAtt RedshiftCluster.Endpoint.Port

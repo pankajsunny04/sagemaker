@@ -64,3 +64,10 @@ resource "aws_instance" "example" {
   instance_id   = var.instance_ids[count.index]
   security_group_ids = [var.security_group_id]
 }
+
+
+resource "aws_security_group_attachment" "example" {
+  count              = length(var.instance_ids)
+  security_group_id = var.security_group_id
+  instance_id        = aws_instance.example[count.index].id
+}

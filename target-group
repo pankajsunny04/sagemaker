@@ -57,3 +57,10 @@ resource "aws_network_interface_attachment" "example" {
   security_group_ids    = [var.security_group_id]
   network_interface_ids = [element(aws_instance.example.*.network_interface_ids, count.index)]
 }
+
+
+resource "aws_instance" "example" {
+  count         = length(var.instance_ids)
+  instance_id   = var.instance_ids[count.index]
+  security_group_ids = [var.security_group_id]
+}

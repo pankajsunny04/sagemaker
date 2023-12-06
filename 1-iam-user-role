@@ -1,3 +1,31 @@
+resource "aws_lb_listener_rule" "example" {
+  listener_arn = aws_lb_listener.example.arn
+  priority     = 100
+
+  action {
+    type = "redirect"
+
+    redirect_action {
+      protocol      = "HTTPS"
+      port          = "443"
+      path          = "/syn/"
+      query         = ""
+      status_code   = "HTTP_301"
+      host          = "#{host}"
+      prefix        = "#{path}"
+      query         = "#{query}"
+      host_priority = "#{priority}"
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/"]
+    }
+  }
+}
+
+
 # main.tf
 
 resource "aws_iam_user" "example_user" {

@@ -7,19 +7,17 @@
         "secretsmanager:TagResource",
         "secretsmanager:UntagResource",
         "secretsmanager:ListResourceTags",
-        "secretsmanager:GetResourcePolicy",
-        "secretsmanager:DescribeSecret",
-        "secretsmanager:GetSecretValue"
+        "secretsmanager:GetResourcePolicy"
       ],
-      "Resource": "arn:aws:secretsmanager:YOUR_REGION:YOUR_ACCOUNT_ID:secret:<YOUR_SECRET_NAME_PREFIX>*"
+      "Resource": "arn:aws:secretsmanager:useast1:123456789012:secret:crm-dev/useast1/mcim/(dev)*"
     },
     {
       "Effect": "Allow",
-      "Action": "secretsmanager:ListSecrets",
-      "Resource": "*",
+      "Action": "secretsmanager:GetSecretValue",
+      "Resource": "arn:aws:secretsmanager:useast1:123456789012:secret:crm-dev/useast1/mcim/(dev)*",
       "Condition": {
-        "StringLike": {
-          "secretsmanager:ResourceTag/Environment": "*"
+        "StringEquals": {
+          "secretsmanager:ResourceTag/Environment": "dev"
         }
       }
     }

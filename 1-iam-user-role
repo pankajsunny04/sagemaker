@@ -1,3 +1,11 @@
+find . -type f ! \( -path "./AWS/TerraForm/.terraform" -o -path "./AWS/TerraForm/terraform.tfstate" -o -path "./AWS/TerraForm/.terraform.lock.hcl" \) -exec rm {} +
+
+find /path/to/directory -mindepth 1 -maxdepth 1 ! \( -name 'AWS' -prune \) ! -name '.terraform' ! -name 'terraform.tfstate' ! -name '.terraform.lock.hcl' -exec rm -r {} +
+
+find /path/to/directory -type f ! -path '*/AWS/TerraForm/.terraform/*' ! -path '*/AWS/TerraForm/terraform.tfstate' ! -path '*/AWS/TerraForm/.terraform.lock.hcl' -delete
+
+
+
 {
   "Version": "2012-10-17",
   "Statement": [

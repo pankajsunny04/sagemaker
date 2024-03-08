@@ -1,56 +1,15 @@
-find . -type f ! \( -path "./AWS/TerraForm/.terraform" -o -path "./AWS/TerraForm/terraform.tfstate" -o -path "./AWS/TerraForm/.terraform.lock.hcl" \) -exec rm {} +
-
-find /path/to/directory -mindepth 1 -maxdepth 1 ! \( -name 'AWS' -prune \) ! -name '.terraform' ! -name 'terraform.tfstate' ! -name '.terraform.lock.hcl' -exec rm -r {} +
-
-find /path/to/directory -type f ! -path '*/AWS/TerraForm/.terraform/*' ! -path '*/AWS/TerraForm/terraform.tfstate' ! -path '*/AWS/TerraForm/.terraform.lock.hcl' -delete
-
-
-
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "secretsmanager:TagResource",
-        "secretsmanager:UntagResource",
-        "secretsmanager:ListResourceTags",
-        "secretsmanager:GetResourcePolicy"
-      ],
-      "Resource": "arn:aws:secretsmanager:useast1:123456789012:secret:crm-dev/useast1/mcim/(dev)*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": "secretsmanager:GetSecretValue",
-      "Resource": "arn:aws:secretsmanager:useast1:123456789012:secret:crm-dev/useast1/mcim/(dev)*",
-      "Condition": {
-        "StringEquals": {
-          "secretsmanager:ResourceTag/Environment": "dev"
-        }
-      }
-    }
-  ]
-}
-
-
-
 {
     "Version": "2012-10-17",
     "Statement": [
         {
             "Effect": "Allow",
-            "Action": [
-                "s3:GetObject",
-                "s3:PutObject",
-                "s3:DeleteObject"
-            ],
-            "Resource": "arn:aws:s3:::your-bucket-name/*",
+            "Action": "kafka:DescribeCluster",
+            "Resource": "*",
             "Condition": {
-                "IpAddress": {
-                    "aws:SourceIp": "23.44.22.45/32"
+                "StringEquals": {
+                    "aws:ResourceTag/cmdbapp": "abc"
                 }
             }
         }
     ]
 }
-

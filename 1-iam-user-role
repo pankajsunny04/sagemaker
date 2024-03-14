@@ -1,3 +1,13 @@
-                "logs:CreateLogGroup",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents"
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "glue:CreateJob",
+                "glue:DeleteJob"
+            ],
+            "Resource": "*"
+        }
+    ]
+}

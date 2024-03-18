@@ -1,13 +1,1 @@
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "glue:CreateJob",
-                "glue:DeleteJob"
-            ],
-            "Resource": "*"
-        }
-    ]
-}
+glue:CreateScheduler, glue:UpdateScheduler

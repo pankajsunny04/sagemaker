@@ -1,1 +1,6 @@
-glue:CreateScheduler, glue:UpdateScheduler
+keytool -genkeypair -alias mykeystore -keyalg RSA -keysize 2048 -keystore keystore.jks
+keytool -importcert -trustcacerts -alias rootca -file root-ca.crt -keystore keystore.jks
+keytool -list -v -keystore keystore.jks
+
+
+keytool -delete -alias rootca -keystore keystore.jks
